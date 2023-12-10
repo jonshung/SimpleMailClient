@@ -52,6 +52,7 @@ bool SMTPClient::checkStatus(int code) {
     case 550:           // mailbox not found, typically send if recipent check occurs after data section sending
     case 553:           // ambiguous user (user not found but server have a pretty close match)
     case 554: {         // no valid recipient
+        _errono = code;
         return false;
     }
     case 220: // connection accept
@@ -86,27 +87,27 @@ void SMTPClient::address(MailContent& _mailContent) {
         std::string buffer;
         command("MAIL FROM:<" + _mailContent.getFrom().getReceiptAddress() + ">");
         if (!line(buffer, 300, true)) {
-            throw std::runtime_error(_error);
+            return;
         }
 
         for (MailboxAddress rcpt : _mailContent.getTo()) {
             command("RCPT TO:<" + rcpt.getReceiptAddress() + ">");
             if (!line(buffer, 300, true)) {
-                throw std::runtime_error(_error);
+                return;
             }
         }
 
         for (MailboxAddress rcpt : _mailContent.getCC()) {
             command("RCPT TO:<" + rcpt.getReceiptAddress() + ">");
             if (!line(buffer, 300, true)) {
-                throw std::runtime_error(_error);
+                return;
             }
         }
 
         for (MailboxAddress rcpt : _mailContent.getBCC()) {
             command("RCPT TO:<" + rcpt.getReceiptAddress() + ">");
             if (!line(buffer, 300, true)) {
-                throw std::runtime_error(_error);
+                return;
             }
         }
     }
@@ -120,7 +121,7 @@ void SMTPClient::data(MailContent& _mailContent) {
         std::string buffer;
         command("DATA");
         if (!line(buffer, 120, true)) {
-            throw std::runtime_error(_error);
+            return;
         }
         std::string msg = MailContent::buildMessage(_mailContent);
         command(msg, 300);
@@ -140,7 +141,7 @@ void SMTPClient::quit() {
         std::string buffer;
         command("QUIT");
         if (!line(buffer, 300, true)) {
-            throw std::runtime_error(_error);
+            return;
         }
     }
     catch (const std::exception& e) {

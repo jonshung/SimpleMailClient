@@ -15,6 +15,7 @@ private:
     SMTPClient();
 public:
     std::string _error;
+    int _errono{ 0 };
 
     // kernel level
     SMTPClient(std::string, std::string);

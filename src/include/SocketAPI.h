@@ -48,6 +48,7 @@ public:
 class SocketClient {
 private:
     bool _connected;
+    std::string _error;
     WSADATA _wsaData;
     SOCKET _client;
 public:

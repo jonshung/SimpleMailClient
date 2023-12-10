@@ -5,7 +5,8 @@ POP3Client::POP3Client(std::string _hostname, std::string _port, std::string _us
     if(!connected()) return;
     greet();
     if (!authorize(_username, _password)) {
-        throw std::runtime_error("cannot authorize " + _username + ", error: " + _error);
+        _error = "cannot authorize " + _username + ", error: " + _error;
+        return;
     }
     cache();
 }

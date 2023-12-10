@@ -50,19 +50,18 @@ std::vector<std::string> SocketClient::socRecv(int _timeout) {
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
     int err = 0;
-    if ((err = setsockopt(_fd, SOL_SOCKET, SO_RCVTIMEO, &_interval, sizeof(_interval))) < 0) {
-        throw std::runtime_error("setsockopt failed, error code: " + err);
-    }
+    err = setsockopt(_fd, SOL_SOCKET, SO_RCVTIMEO, &_interval, sizeof(_interval));
 
     const std::size_t _maxbuf = 1024;
     char _buffer[_maxbuf];
+    std::vector<std::string> _ret;
 
     int _read = recv(_fd, _buffer, _maxbuf, 0);
     if (_read == 0) {
-        throw std::runtime_error("Connection closed unexpectedly");
+        _error = "Connection stopped unexpectedly";
+        return _ret;
     }
     int _total = 0;
-    std::vector<std::string> _ret;
     std::stringstream ss(std::string(_buffer, _read));
     std::string _temp;
 
@@ -81,9 +80,7 @@ int SocketClient::socSend(const std::string& msg, const int& _timeout) {
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
     int err = 0;
-    if ((err = setsockopt(_fd, SOL_SOCKET, SO_SNDTIMEO, &_interval, sizeof(_interval))) < 0) {
-        throw std::runtime_error("setsockopt failed, error code: " + err);
-    }
+    err = setsockopt(_fd, SOL_SOCKET, SO_SNDTIMEO, &_interval, sizeof(_interval));
 
     const char* c = msg.c_str();
     int total = 0;
@@ -111,7 +108,7 @@ SocketClient::SocketClient(const std::string& destinationHost, const std::string
     int status;
 
     if ((status = WSAStartup(MAKEWORD(2, 2), &_wsaData)) != 0) {
-        throw std::runtime_error("Cannot start Socket Client");
+        _error = "Cannot start socket api";
     }
 
     addrinfo hint, * p;
@@ -168,16 +165,15 @@ std::vector<std::string> SocketClient::socRecv(const int& _timeout) {
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
     int err = 0;
-    if ((err = setsockopt(_client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&_interval, sizeof(_interval))) < 0) {
-        throw std::runtime_error("setsockopt failed, error code: " + err);
-    }
+    err = setsockopt(_client, SOL_SOCKET, SO_RCVTIMEO, (const char*)&_interval, sizeof(_interval));
 
     const std::size_t _maxbuf = 1024;
     char _buffer[_maxbuf];
 
     int _read = recv(_client, _buffer, _maxbuf, 0);
     if (_read == 0) {
-        throw std::runtime_error("Connection closed unexpectedly");
+        _error = "Connection closed unexpectedly";
+        return;
     }
     int _total = 0;
     std::vector<std::string> _ret;
@@ -199,10 +195,8 @@ int SocketClient::socSend(const std::string& msg, const int& _timeout) {
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
     int err = 0;
-    if ((err = setsockopt(_client, SOL_SOCKET, SO_SNDTIMEO, (const char*)&_interval, sizeof(_interval))) < 0) {
-        throw std::runtime_error("setsockopt failed, error code: " + err);
-    }
-
+    err = setsockopt(_client, SOL_SOCKET, SO_SNDTIMEO, (const char*)&_interval, sizeof(_interval));
+    
     const char* c = msg.c_str();
     int total = 0;
     int bytesleft = msg.length();
