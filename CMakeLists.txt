@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Qml)
 qt_standard_project_setup()
@@ -16,11 +17,14 @@ add_subdirectory(src/lib/json)
 #   Qt include
 list(APPEND CMAKE_PREFIX_PATH /opt/Qt/6.6.1/gcc_64/lib/cmake/)
 qt_add_executable(Mail-Client
+    src/gui/ResourcesCompiler.qrc
     src/_bootstrap.cpp
     src/SocketAPI.cpp
     src/test_unit.cpp
     src/SMTPClient.cpp
     src/POP3Client.cpp
+    src/gui/BoxShadowEffect.cpp
+    src/gui/ContentWidget.cpp
     src/gui/MainWindow.cpp
     src/gui/SendMenu.cpp
     src/gui/MailboxMenu.cpp

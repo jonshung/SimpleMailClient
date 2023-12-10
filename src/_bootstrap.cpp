@@ -9,6 +9,10 @@ int main(int argc, char* argv[]) {
     QCoreApplication::setApplicationName("Mail Client");
     QCoreApplication::setApplicationVersion("1.0");
 
+    QFont font = app.font();
+    font.setFamily("Arial");
+    app.setFont(font);
+
     MainWindow _mainWin;
     _mainWin.show();
     //evalTest();

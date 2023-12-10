@@ -10,6 +10,7 @@
 #include <QtCore/QDebug>
 
 #include "MainWindow.h"
+#include "ContentWidget.h"
 
 class SendMenu : public QWidget {
     Q_OBJECT
@@ -18,9 +19,11 @@ private:
     QLineEdit* _subjectEdit;
     QLineEdit* _ccEdit;
     QLineEdit* _bccEdit;
-    QTextEdit* _contentEdit;
+    ContentWidget* _contentEdit;
     QPushButton* _submitButton;
 private slots:
+    void showCC();
+    void showBCC();
     void submit();
 public:
     SendMenu(QWidget* = nullptr);

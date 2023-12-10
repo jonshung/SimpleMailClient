@@ -264,11 +264,12 @@ std::string MIMEText::build() {
 
 
 MIMEMultipart::MIMEMultipart() : MIMEPart("", "") {
-    _boundary = "";
+    setBoundary("");
 }
 
-MIMEMultipart::MIMEMultipart(std::string _multipartType, std::string _b) : MIMEPart(_multipartType + "; boundary=\"" + _b + "\"", "") {
-    _boundary = _b;
+MIMEMultipart::MIMEMultipart(std::string _multipartType, std::string _b) : MIMEPart("", "") {
+    _partType = _multipartType;
+    setBoundary(_b);
 }
 
 std::vector<std::shared_ptr<MIMEPart>> MIMEMultipart::getParts() {
@@ -281,7 +282,15 @@ std::string MIMEMultipart::getBoundary() {
 
 void MIMEMultipart::setBoundary(std::string _vl) {
     _boundary = _vl;
-    setContentType(getContentType() + "; boundary=\"" + _boundary + "\"");
+    int i = 0;
+    int len = rand_chars.size();
+    srand(time(NULL));
+    while (i < 16) {
+        int idx = rand() % len;
+        _boundary.push_back(rand_chars[idx]);
+        ++i;
+    }
+    setContentType(getPartType() + "; boundary=\"" + _boundary + "\"");
 }
 
 void MIMEMultipart::addPart(std::shared_ptr<MIMEPart> _vl) {
@@ -322,7 +331,6 @@ std::string MIMEMultipart::build() {
 */
 
 MailContent::MailContent() {
-    _to = std::vector<MailboxAddress>();
     _from = MailboxAddress("", "");
     _subject = "";
     _htmlContent = "";
@@ -428,6 +436,123 @@ void MailContent::addAttachment(MIMEAttachment _att) {
 
 void MailContent::setAttachments(std::vector<MIMEAttachment> _attl) {
     _attachments = _attl;
+}
+
+void MailContent::packHeader(MailContent& _mailContent, MIMEMultipart& _body) {
+
+    /**                             Subject                                   */
+    _body.setHeader("Subject", _mailContent.getSubject());
+
+    _body.setHeader("From", "\"" + _mailContent.getFrom().getReceiptName() + "\" <" + _mailContent.getFrom().getReceiptAddress() + ">");
+    
+    if (_mailContent.getTo().size() > 0) {
+        std::stringstream rcptList;
+        int n = 4;
+        for (int i = 0; i < _mailContent.getTo().size(); i++) {
+            MailboxAddress rcpt = _mailContent.getTo()[i];
+            std::string sep = "";
+            if ((i + 1) == _mailContent.getTo().size()) {
+                n += 5;
+            } else {
+                n += 7;
+                sep = ", ";
+            }
+            n += rcpt.getReceiptName().length() + rcpt.getReceiptAddress().length();
+
+            // should also precheck line and cut it but a limit imposed on mailbox address should be enough to
+            // deal with this issue.
+            std::string pad = "";
+            if (n > 76) {
+                pad = "\r\n ";
+                n = 1;
+            }
+            rcptList << "\"" << rcpt.getReceiptName() << "\" <" << rcpt.getReceiptAddress() << ">" << sep << pad;
+        }
+        _body.setHeader("To", rcptList.str());
+    }
+
+    /**                              COPY                                    */
+    if (_mailContent.getCC().size() > 0) {
+        std::stringstream rcptList;
+        int n = 4;
+        for (int i = 0; i < _mailContent.getCC().size(); i++) {
+            MailboxAddress rcpt = _mailContent.getCC()[i];
+            std::string sep = "";
+            if ((i + 1) == _mailContent.getCC().size()) {
+                n += 5;
+            }
+            else {
+                n += 7;
+                sep = ", ";
+            }
+            n += rcpt.getReceiptName().length() + rcpt.getReceiptAddress().length();
+
+            // should also precheck line and cut it but a limit imposed on mailbox address should be enough to
+            // deal with this issue.
+            std::string pad = "";
+            if (n > 76) {
+                pad = "\r\n ";
+                n = 1;
+            }
+            rcptList << "\"" << rcpt.getReceiptName() << "\" <" << rcpt.getReceiptAddress() << ">" << sep << pad;
+        }
+        _body.setHeader("Cc", rcptList.str());
+    }
+
+    /**                              DATE                                    */
+    const auto currentTime = std::chrono::system_clock::now();
+    const auto timer = std::chrono::system_clock::to_time_t(currentTime);
+    std::tm timeRep{};
+
+#if defined(__unix__)
+    localtime_r(&timer, &timeRep);
+#elif defined(_MSC_VER)
+    localtime_s(&timeRep, &timer);
+#else
+    static std::mutex mtx;
+    std::lock_guard<std::mutex> lock(mtx);
+    timeRep = *std::localtime(&timer);
+#endif
+
+    std::stringstream dateVl;
+    dateVl << std::put_time(&timeRep, "%d %b %Y %H:%M %z");
+    _body.setHeader("Date", dateVl.str());
+    // required header date and address field
+    _body.setHeader("MIME-Version", "1.0");
+}
+
+
+std::string MailContent::buildMessage(MailContent& _mailContent) {
+    MIMEMultipart mainBody("multipart/mixed", "main");
+    MailContent::packHeader(_mailContent, mainBody);
+
+    /**                         PLAIN TEXT AND HTML DATA                            */
+    if (_mailContent.getPlainContent().length() > 0 || _mailContent.getHTMLContent().length() > 0) {
+        std::shared_ptr<MIMEMultipart> textPart = std::make_shared<MIMEMultipart>("multipart/alternative", "text-boundary");
+        // plain text
+        if (_mailContent.getPlainContent().length() > 0) {
+            std::shared_ptr<MIMEText> plainContent = std::make_shared<MIMEText>("text/plain", "quoted-printable", "utf-8", _mailContent.getPlainContent());
+            textPart->addPart(plainContent);
+        }
+
+        // html
+        if (_mailContent.getHTMLContent().length() > 0) {
+            std::shared_ptr<MIMEText> htmlContent = std::make_shared<MIMEText>("text/html", "quoted-printable", "utf-8", _mailContent.getHTMLContent());
+            textPart->addPart(htmlContent);
+        }
+        mainBody.addPart(textPart);
+    }
+
+    /**                                ATTACHMENTS                                  */
+    for (MIMEAttachment attachment : _mailContent.getAttachments()) {
+        mainBody.addPart(std::make_shared<MIMEAttachment>(attachment));
+    }
+    std::string msg = mainBody.build();
+    if (msg.substr(msg.length() - 2) == "\r\n") {        //multipart final trailing.
+        msg.pop_back();
+        msg.pop_back();
+    }
+    return msg;
 }
 
 /*

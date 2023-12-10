@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../resources/undo.png</file>
+        <file>../resources/redo.png</file>
+    </qresource>
+</RCC>

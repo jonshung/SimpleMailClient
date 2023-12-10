@@ -30,7 +30,6 @@ public:
     void greet();
     void data(MailContent&);
     void address(MailContent&);
-    void packHeader(MailContent&, MIMEMultipart&);
 
     //utility
 

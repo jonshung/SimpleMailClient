@@ -7,6 +7,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <memory>
+#include <chrono>
 
 #include "Encoder.h"
 
@@ -21,8 +22,8 @@ static std::string encodeToString(int);
 
 class MailboxAddress {
 private:
-    std::string _rcptName;
-    std::string _rcptAddress;
+    std::string _rcptName{ "" };
+    std::string _rcptAddress{ "" };
 public:
     MailboxAddress();
     MailboxAddress(std::string, std::string);
@@ -77,7 +78,7 @@ public:
 
 class MIMEText : public MIMEPart {
 private:
-    std::string _charset;
+    std::string _charset{ "" };
 public:
     MIMEText();
     MIMEText(std::string, std::string, std::string, std::string = "");
@@ -90,13 +91,16 @@ public:
 
 class MIMEMultipart : public MIMEPart {
 private:
+    inline static const std::string rand_chars = std::string("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
     std::vector<std::shared_ptr<MIMEPart>> _parts;
-    std::string _boundary;
+    std::string _partType{ "" };
+    std::string _boundary{ "" };
 public:
     MIMEMultipart();
     MIMEMultipart(std::string, std::string);
 
     std::vector<std::shared_ptr<MIMEPart>> getParts();
+    inline std::string getPartType() { return _partType; }
     std::string getBoundary();
 
     void setBoundary(std::string);
@@ -111,9 +115,9 @@ private:
     MailboxAddress _from;
     std::vector<MailboxAddress> _cc;
     std::vector<MailboxAddress> _bcc;
-    std::string _subject;
-    std::string _htmlContent;
-    std::string _plainContent;
+    std::string _subject{ "" };
+    std::string _htmlContent{ "" };
+    std::string _plainContent{ "" };
     std::vector<MIMEAttachment> _attachments;
 
 public:
@@ -148,6 +152,8 @@ public:
     void setAttachments(std::vector<MIMEAttachment>);
 
     static MailContent parseFromFile(std::string);
+    static void packHeader(MailContent&, MIMEMultipart&);
+    static std::string buildMessage(MailContent&);
 };
 
 #endif
