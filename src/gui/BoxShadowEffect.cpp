@@ -72,4 +72,17 @@ QRectF BoxShadowEffect::boundingRectFor(const QRectF& rect) const {
     return rect.united(rect.adjusted(-delta, -delta, delta, delta));
 }
 
+
+BoxShadowWrapper::BoxShadowWrapper(QWidget* widget, BoxShadowEffect* ef) {
+    _widget = widget;
+    QVBoxLayout* shadowLayout = new QVBoxLayout();
+    QWidget* shadowWrapper = new QWidget();
+    shadowWrapper->setLayout(shadowLayout);
+    shadowLayout->addWidget(widget);
+
+    widget->setGraphicsEffect(ef);
+    qreal dist = ef->distance();
+    shadowLayout->setContentsMargins(dist * 2, dist * 2, dist * 2, dist * 2);
+}
+
 #include "moc_BoxShadowEffect.cpp"

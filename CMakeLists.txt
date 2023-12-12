@@ -23,6 +23,7 @@ qt_add_executable(Mail-Client
     src/test_unit.cpp
     src/SMTPClient.cpp
     src/POP3Client.cpp
+    src/gui/AttachmentListWidget.cpp
     src/gui/BoxShadowEffect.cpp
     src/gui/ContentWidget.cpp
     src/gui/MainWindow.cpp
@@ -38,6 +39,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 
 target_link_libraries(Mail-Client PRIVATE Qt6::Widgets 
+                                          Qt6::Gui
                                           Qt6::Qml nlohmann_json
                                           /usr/local/lib/libmimetic.a
                      )

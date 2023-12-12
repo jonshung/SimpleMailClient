@@ -2,8 +2,9 @@
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setWindowTitle("Mail client");
-    setMinimumSize(700, 700);
-    resize(800, 550);
+    setMinimumSize(800, 550);
+    resize(1024, 720);
+    this->setStyleSheet("background-color: white;");
 
     QGridLayout* centralLayout = new QGridLayout();
     QLabel *Welcome_Msg = new QLabel("Mail client");

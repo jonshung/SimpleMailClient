@@ -189,7 +189,8 @@ void ClientMailbox::fetch(std::string _host, std::string _port, const QString& _
 
     POP3Client pop3Client(_host, _port, getCredential().getAddress().getReceiptAddress(), getCredential().getPassword());
     if (!pop3Client.connected()) {
-        throw std::runtime_error("Cannot connect to pop3 server");
+        _error = pop3Client._error;
+        return;
     }
     for (auto it : pop3Client._cacheUIDL) {
         std::string id = std::get<0>(it);
@@ -281,7 +282,8 @@ std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _s
 void ClientMailbox::sendContent(std::string _host, std::string _port, MailContent& _mailContent) {
     SMTPClient smtpClient(_host, _port);
     if (!smtpClient.connected()) {
-        throw std::runtime_error("Cannot connect to smtp server");
+        _error = smtpClient._error;
+        return;
     }
     smtpClient.sequence(_mailContent);
 }

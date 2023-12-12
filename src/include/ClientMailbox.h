@@ -39,6 +39,7 @@ private:
     json _data;
     Credential _cred;
 public:
+    std::string _error{ "" };
     ClientMailbox(Credential);
     ~ClientMailbox();
 

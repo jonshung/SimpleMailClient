@@ -3,6 +3,9 @@
 
 #include <QtWidgets/QGraphicsDropShadowEffect>
 #include <QtWidgets/QGraphicsEffect>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
+
 
 class BoxShadowEffect : public QGraphicsEffect {
     Q_OBJECT
@@ -25,6 +28,13 @@ private:
     qreal  _distance;
     qreal  _blurRadius;
     QColor _color;
+};
+
+class BoxShadowWrapper : public QWidget {
+private:
+    QWidget* _widget;
+public:
+    BoxShadowWrapper(QWidget*, BoxShadowEffect*);
 };
 
 #endif

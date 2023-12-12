@@ -46,6 +46,8 @@ bool SocketClient::connected() {
 }
 
 std::vector<std::string> SocketClient::socRecv(int _timeout) {
+    std::vector<std::string> _ret;
+    if (!connected()) return _ret;
     timeval _interval;
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
@@ -54,7 +56,6 @@ std::vector<std::string> SocketClient::socRecv(int _timeout) {
 
     const std::size_t _maxbuf = 1024;
     char _buffer[_maxbuf];
-    std::vector<std::string> _ret;
 
     int _read = recv(_fd, _buffer, _maxbuf, 0);
     if (_read == 0) {
@@ -76,6 +77,7 @@ std::vector<std::string> SocketClient::socRecv(int _timeout) {
 }
 
 int SocketClient::socSend(const std::string& msg, const int& _timeout) {
+    if(!connected()) return 0;
     timeval _interval;
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;
@@ -160,6 +162,8 @@ bool SocketClient::connected() {
 }
 
 std::vector<std::string> SocketClient::socRecv(const int& _timeout) {
+    std::vector<std::string> _ret;
+    if (!connected()) return _ret;
 
     timeval _interval;
     _interval.tv_sec = _timeout;
@@ -176,7 +180,6 @@ std::vector<std::string> SocketClient::socRecv(const int& _timeout) {
         return;
     }
     int _total = 0;
-    std::vector<std::string> _ret;
     std::stringstream ss(std::string(_buffer, _read));
     std::string _temp;
 
@@ -191,6 +194,7 @@ std::vector<std::string> SocketClient::socRecv(const int& _timeout) {
 }
 
 int SocketClient::socSend(const std::string& msg, const int& _timeout) {
+    if (!connected()) return 0;
     timeval _interval;
     _interval.tv_sec = _timeout;
     _interval.tv_usec = 0;

@@ -12,6 +12,8 @@
 #include "MainWindow.h"
 #include "ContentWidget.h"
 
+class ContentWidget;
+
 class SendMenu : public QWidget {
     Q_OBJECT
 private:
@@ -20,13 +22,15 @@ private:
     QLineEdit* _ccEdit;
     QLineEdit* _bccEdit;
     ContentWidget* _contentEdit;
-    QPushButton* _submitButton;
 private slots:
     void showCC();
     void showBCC();
+public slots:
     void submit();
 public:
     SendMenu(QWidget* = nullptr);
+
+    ContentWidget* content();
     virtual ~SendMenu() {}
 };
 

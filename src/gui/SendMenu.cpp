@@ -53,12 +53,12 @@ SendMenu::SendMenu(QWidget* parent) : QWidget(parent) {
     _ccEdit->setPlaceholderText("Cc");
     _bccEdit->setPlaceholderText("Bcc");
 
-    _submitButton = new QPushButton();
+    /*_submitButton = new QPushButton();
     _submitButton->setText("&Send mail");
-    _submitButton->setFixedSize(100, 40);
-    SendMenu::connect(_submitButton, &QPushButton::clicked, this, &SendMenu::submit);
+    SendMenu::connect(_submitButton, &QPushButton::clicked, this, &SendMenu::submit);*/
 
     _contentEdit = new ContentWidget(this);
+    _contentEdit->setMinimumWidth(parent->geometry().width());
 
     mainLayout->addWidget(_toEdit, 0, 0, Qt::AlignLeft);
     mainLayout->addWidget(ccOpen, 0, 1);
@@ -92,21 +92,54 @@ void SendMenu::submit() {
 
     for(QString rcpt : toList) {
         if(rcpt.length() == 0) continue;
-        mailForm.addTo("", rcpt.toStdString());
+        QStringList rcptSplit = rcpt.split(u' ');
+        std::string rcptName = "";
+        std::string rcptAddr = rcpt.toStdString();
+        if(rcptSplit.size() >= 2) {
+            rcptName = rcptSplit[0].toStdString();
+            rcptAddr = rcptSplit[1].toStdString();
+        }
+        mailForm.addTo(rcptName, rcptAddr);
     }
     for (QString rcpt : ccList) {
         if (rcpt.length() == 0) continue;
+        QStringList rcptSplit = rcpt.split(u' ');
+        std::string rcptName = "";
+        std::string rcptAddr = rcpt.toStdString();
+        if (rcptSplit.size() >= 2) {
+            rcptName = rcptSplit[0].toStdString();
+            rcptAddr = rcptSplit[1].toStdString();
+        }
         mailForm.addCC("", rcpt.toStdString());
     }
     for (QString rcpt : bccList) {
         if (rcpt.length() == 0) continue;
+        QStringList rcptSplit = rcpt.split(u' ');
+        std::string rcptName = "";
+        std::string rcptAddr = rcpt.toStdString();
+        if (rcptSplit.size() >= 2) {
+            rcptName = rcptSplit[0].toStdString();
+            rcptAddr = rcptSplit[1].toStdString();
+        }
         mailForm.addBCC("", rcpt.toStdString());
     }
     mailForm.setSubject(subjectField.toStdString());
     mailForm.setHTMLContent(contentHTML.toStdString());
     mailForm.setPlainContent(contentPlain.toStdString());
-    qDebug().noquote() << MailContent::buildMessage(mailForm);
-    //MainWindow::_mailboxInstance->
+
+    for(const QString& filepath : _contentEdit->attachmentListWidget()->attachments()) {
+        MIMEAttachment _mime = mimeFromFile(filepath.toStdString(), "", 20 * 1024 * 1024);
+        if (_mime.getData().length() == 0) {
+            continue;
+        }
+        mailForm.addAttachment(_mime);
+    }
+
+    MainWindow::_mailboxInstance->sendContent("localhost", "2225", mailForm);
+    if(MainWindow::_mailboxInstance->_error.length() > 0) {
+        qDebug() << MainWindow::_mailboxInstance->_error;
+        MainWindow::_mailboxInstance->_error = "";
+    }
 }
 
 void SendMenu::showCC() {
@@ -115,6 +148,11 @@ void SendMenu::showCC() {
 
 void SendMenu::showBCC() {
     _bccEdit->setVisible(!_bccEdit->isVisible());
+}
+
+
+ContentWidget* SendMenu::content() {
+    return _contentEdit;
 }
 
 #include "moc_SendMenu.cpp"
