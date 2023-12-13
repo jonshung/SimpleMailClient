@@ -44,7 +44,7 @@ public:
     ~ClientMailbox();
 
     Credential getCredential();
-    json getFolders();
+    json& getFolders();
     bool folderExists(std::string);
     bool mailIsRead(std::string UIDL);
     bool mailDownloaded(std::string UIDL);

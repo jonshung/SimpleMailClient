@@ -5,6 +5,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setMinimumSize(800, 550);
     resize(1024, 720);
     this->setStyleSheet("background-color: white;");
+    _mailboxInstance = std::make_unique<ClientMailbox>(Credential(MailboxAddress("David Buoi", "user1@abc.com"), "user1@abc.com"));
 
     QGridLayout* centralLayout = new QGridLayout();
     QLabel *Welcome_Msg = new QLabel("Mail client");
@@ -29,8 +30,6 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     setCentralWidget(_pages);
     createMenus();
-
-    _mailboxInstance = std::make_unique<ClientMailbox>(Credential(MailboxAddress("David Buoi", "user1@abc.com"), "user1@abc.com"));
 
     QString message = tr("Welcome to the simple mail client, start by selecting an item on the menu bar");
     statusBar()->showMessage(message);

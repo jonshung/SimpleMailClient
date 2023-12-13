@@ -9,13 +9,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets Qml)
+#   Qt include
+list(APPEND CMAKE_PREFIX_PATH /opt/Qt/6.6.1/gcc_64/)
+
+find_package(Qt6 REQUIRED COMPONENTS Widgets Qml Gui WebEngineWidgets)
 qt_standard_project_setup()
 
 add_subdirectory(src/lib/json)
 
-#   Qt include
-list(APPEND CMAKE_PREFIX_PATH /opt/Qt/6.6.1/gcc_64/lib/cmake/)
 qt_add_executable(Mail-Client
     src/gui/ResourcesCompiler.qrc
     src/_bootstrap.cpp
@@ -40,6 +41,7 @@ pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0)
 
 target_link_libraries(Mail-Client PRIVATE Qt6::Widgets 
                                           Qt6::Gui
+                                          Qt6::WebEngineWidgets
                                           Qt6::Qml nlohmann_json
                                           /usr/local/lib/libmimetic.a
                      )

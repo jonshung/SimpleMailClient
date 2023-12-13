@@ -111,12 +111,12 @@ void ClientMailbox::dataIntegrity() {
     }
     if (!_data["folders"].contains("Inbox")) {
         _data["folders"]["Inbox"] =
-        { "Inbox", {
+        {
             {"enabled", true},
             {"from", json::array({})},
             {"subjectKeyword", json::array({})},
             {"bodyKeyword", json::array({})}
-        } };
+        };
     }
 
     for (auto& folderData : _data["folders"].items()) {
@@ -158,8 +158,8 @@ Credential ClientMailbox::getCredential() {
     return _cred;
 }
 
-json ClientMailbox::getFolders() {
-    return _data["json"];
+json& ClientMailbox::getFolders() {
+    return _data["folders"];
 }
 
 bool ClientMailbox::mailIsRead(std::string _uidl) {
@@ -177,7 +177,13 @@ bool ClientMailbox::folderExists(std::string _folder) {
 
 void ClientMailbox::addFolder(std::string _folder) {
     if (folderExists(_folder)) return;
-    _data["json"].push_back(_folder);
+    _data["folders"][_folder] =
+    {
+        {"enabled", true},
+        {"from", json::array({})},
+        {"subjectKeyword", json::array({})},
+        {"bodyKeyword", json::array({})}
+    };;
 }
 
 void ClientMailbox::setMailIsRead(std::string _id) {
@@ -204,7 +210,8 @@ void ClientMailbox::fetch(std::string _host, std::string _port, const QString& _
             throw std::runtime_error("error: " + pop3Client._error);
         }
         std::string bufferString = POP3Client::serializeString(bufferVector);
-        localDataPath.append(filter(bufferString, _filterEval));
+        std::string filterRes = filter(bufferString, _filterEval);
+        localDataPath.append(filterRes);
         if (!std::filesystem::is_directory(localDataPath)) {
             std::filesystem::create_directories(localDataPath);
         }
@@ -245,35 +252,43 @@ std::string ClientMailbox::filter(const std::string& _content, const QString& _f
 std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _subject, const QString& _bodyText) {
     std::stringstream regExpr;
     std::regex p_r;
-    for(auto& folderObject : getFolders().items()) {
-        if(folderObject.value()["enabled"] == false) continue;
+    json& folders = getFolders();
+    for (auto& folderObject : folders.items()) {
+        if (folderObject.value()["enabled"] == false) continue;
 
-        for (std::string match : folderObject.value()["from"]) {
-            regExpr << match << "|";
+        if (folderObject.value()["from"].size() > 0) {
+            for (int i = 0; i < folderObject.value()["from"].size(); i++) {
+                std::string match = folderObject.value()["from"][i];
+                regExpr << match << (i != folderObject.value()["from"].size() - 1) ? "|" : "";
+            }
+            p_r = std::regex(regExpr.str());
+            if (std::regex_search(_from.toStdString(), p_r)) {
+                return folderObject.key();
+            }
+            regExpr.str("");
+            regExpr.clear();
         }
-        p_r = std::regex(regExpr.str());
-        if (std::regex_search(_from.toStdString(), p_r)) {
-            return folderObject.key();
+        if (folderObject.value()["subjectKeyword"].size() > 0) {
+            for (int i = 0; i < folderObject.value()["subjectKeyword"].size(); i++) {
+                std::string match = folderObject.value()["subjectKeyword"][i];
+                regExpr << match << ((i != folderObject.value()["subjectKeyword"].size() - 1) ? "|" : "");
+            }
+            p_r = std::regex(regExpr.str());
+            if (std::regex_search(_subject.toStdString(), p_r)) {
+                return folderObject.key();
+            }
+            regExpr.str("");
+            regExpr.clear();
         }
-        regExpr.str("");
-        regExpr.clear();
-
-        for (std::string match : folderObject.value()["subjectKeyword"]) {
-            regExpr << match << "|";
-        }
-        p_r = std::regex(regExpr.str());
-        if (std::regex_search(_subject.toStdString(), p_r)) {
-            return folderObject.key();
-        }
-        regExpr.str("");
-        regExpr.clear();
-
-        for (std::string match : folderObject.value()["bodyKeyword"]) {
-            regExpr << match << "|";
-        }
-        p_r = std::regex(regExpr.str());
-        if (std::regex_search(_bodyText.toStdString(), p_r)) {
-            return folderObject.key();
+        if (folderObject.value()["bodyKeyword"].size() > 0) {
+            for (int i = 0; i < folderObject.value()["bodyKeyword"].size(); i++) {
+                std::string match = folderObject.value()["bodyKeyword"][i];
+                regExpr << match << (i != folderObject.value()["bodyKeyword"].size() - 1) ? "|" : "";
+            }
+            p_r = std::regex(regExpr.str());
+            if (std::regex_search(_bodyText.toStdString(), p_r)) {
+                return folderObject.key();
+            }
         }
     }
     return "Inbox";

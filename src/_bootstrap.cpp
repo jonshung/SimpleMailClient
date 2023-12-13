@@ -6,7 +6,7 @@
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName("KietHung_PhuongUyen_DuyBao");
-    QCoreApplication::setApplicationName("Mail Client");
+    QCoreApplication::setApplicationName("MailClient");
     QCoreApplication::setApplicationVersion("1.0");
 
     QFont font = app.font();

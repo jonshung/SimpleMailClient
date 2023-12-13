@@ -95,6 +95,10 @@ bool getMIMETextEntity(mimetic::MimeEntity* e, mimetic::MimeEntity& res) {
     return found;
 }
 
+std::string extractSubject(mimetic::MimeEntity* e) {
+    return e->header().subject();
+}
+
 void getMIMEAttachments(mimetic::MimeEntity* e, std::vector<mimetic::MimeEntity*>& res) {
     if (e->header().contentType().isMultipart()) {
         mimetic::MimeEntityList& bodyParts = e->body().parts();

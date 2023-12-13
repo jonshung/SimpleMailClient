@@ -15,7 +15,7 @@ std::vector<std::string> Encoder::encode_quoted_printable(std::string _in) {
         }
         if (c == 10 || c == 13) { out << c; n = 0; }
         else if (c < 32 || c == 61 || c > 126) {
-            out << "=" << std::setfill('0') << std::setw(2) << std::hex << c;
+            out << "=" << std::uppercase << std::setw(2) << std::setfill('0') << std::hex << (int)c;
             n++;
         }
         else if (c != 32 || (c != 9 && c != 12)) { out << c; n++; }
