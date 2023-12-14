@@ -28,11 +28,13 @@ void Credential::setAddress(MailboxAddress _vl) {
 
 ClientMailbox::ClientMailbox(Credential _info) {
     _cred = _info;
-    std::filesystem::path localDataPath = std::string("mailboxes/" + _info.getAddress().getReceiptAddress());
+    qDebug() << "Creating client profile...";
+    std::filesystem::path localDataPath = std::filesystem::current_path();
+    localDataPath.append(std::string("mailboxes/" + _info.getAddress().getReceiptAddress()));
     if (!std::filesystem::is_directory(localDataPath)) {
         std::filesystem::create_directories(localDataPath);
     }
-    init(_info);
+    if(_cred.getAddress().getReceiptAddress().length() > 0) init(_info);
 }
 
 void ClientMailbox::init(Credential _credInfo) {
@@ -40,7 +42,7 @@ void ClientMailbox::init(Credential _credInfo) {
     std::filesystem::path localDataPath = std::string("mailboxes/" + _info.getReceiptAddress());
     if (!std::filesystem::is_regular_file(localDataPath / ".mailboxCfg.json")) {
         std::ofstream configFile(localDataPath / ".mailboxCfg.json");
-        json defaultCfgData;
+        ordered_json defaultCfgData;
         defaultCfgData["user"] = _info.getReceiptName();
         defaultCfgData["address"] = _info.getReceiptAddress();
         defaultCfgData["password"] = _credInfo.getPassword();
@@ -84,7 +86,8 @@ void ClientMailbox::init(Credential _credInfo) {
     else {
         std::ifstream configFile(localDataPath / ".mailboxCfg.json");
         if (!configFile.is_open()) {
-            throw std::runtime_error("Error cannot open file");
+            _error = "Cannot open config file";
+            return;
         }
         configFile >> _data;
         configFile.close();
@@ -93,21 +96,57 @@ void ClientMailbox::init(Credential _credInfo) {
 }
 
 void ClientMailbox::dataIntegrity() {
+    MailboxAddress info = _cred.getAddress();
     if (!_data["user"].is_string()) {
-        throw std::runtime_error("field user is in incorrect type, expected: string");
+        _error = "field user is in incorrect type, expected: string";
+        _data["user"] = info.getReceiptName();
     }
     if (!_data["address"].is_string()) {
-        throw std::runtime_error("field address is in incorrect type, expected: string");
+        _error = "field address is in incorrect type, expected: string";
+        _data["address"] = info.getReceiptAddress();
     }
     if (!_data["password"].is_string()) {
-        throw std::runtime_error("field password is in incorrect type, expected: string");
+        _error = "field password is in incorrect type, expected: string";
+        _data["password"] = _cred.getPassword();
     }
-    if (_cred.getAddress().getReceiptName() != _data["user"]) _cred.getAddress().setReceiptName(_data["user"]);
-    if (_cred.getAddress().getReceiptAddress() != _data["address"]) _cred.getAddress().setReceiptAddress(_data["address"]);
-    if (_cred.getPassword() != _data["password"]) _cred.setPassword(_data["password"]);
+    if (_cred.getAddress().getReceiptName() != _data["user"]) _data["user"] = _cred.getAddress().getReceiptName();
+    if (_cred.getAddress().getReceiptAddress() != _data["address"]) _data["address"] = _cred.getAddress().getReceiptAddress();
+    if (_cred.getPassword() != _data["password"]) _data["password"] = _cred.getPassword();
 
     if (!_data["folders"].is_object()) {
-        throw std::runtime_error("field folders is in incorrect type, expected: object");
+        _error = "field folders is in incorrect type, expected: object";
+        _data["folders"] = {
+            {"Inbox", {
+                {"enabled", true},
+                {"from", json::array({})},
+                {"subjectKeyword", json::array({})},
+                {"bodyKeyword", json::array({})}
+            }},
+            {"Spam", {
+                {"enabled", true},
+                {"from", json::array({})},
+                {"subjectKeyword", json::array({})},
+                {"bodyKeyword", json::array({})}
+            }},
+            {"Project", {
+                {"enabled", true},
+                {"from", json::array({})},
+                {"subjectKeyword", json::array({})},
+                {"bodyKeyword", json::array({})}
+            }},
+            {"Work", {
+                {"enabled", true},
+                {"from", json::array({})},
+                {"subjectKeyword", json::array({})},
+                {"bodyKeyword", json::array({})}
+            }},
+            {"Important", {
+                {"enabled", true},
+                {"from", json::array({})},
+                {"subjectKeyword", json::array({})},
+                {"bodyKeyword", json::array({})}
+            }}
+        };
     }
     if (!_data["folders"].contains("Inbox")) {
         _data["folders"]["Inbox"] =
@@ -121,35 +160,36 @@ void ClientMailbox::dataIntegrity() {
 
     for (auto& folderData : _data["folders"].items()) {
         if (!folderData.value().is_object()) {
-            throw std::runtime_error("Corrupted folder data");
+            _error = "Corrupted folder data";
         }
         if (!folderData.value().contains("enabled") ||
             !folderData.value().contains("from") ||
             !folderData.value().contains("subjectKeyword") ||
             !folderData.value().contains("bodyKeyword")) {
-            throw std::runtime_error("Missing field at folderData: " + folderData.key());
+            _error = "Missing field at folderData: " + folderData.key();
         }
         if (!folderData.value()["enabled"].is_boolean() ||
             !folderData.value()["from"].is_array() ||
             !folderData.value()["subjectKeyword"].is_array() ||
             !folderData.value()["bodyKeyword"].is_array()) {
-            throw std::runtime_error("Error type of one of " + folderData.key() + " field");
+            _error = "Error type of one of " + folderData.key() + " field";
         }
     }
 
     if (!_data["mailboxData"].is_object()) {
-        throw std::runtime_error("field mailboxData is in incorrect type, expected: object");
+        _error = "field mailboxData is in incorrect type, expected: object";
+        _data["mailboxData"] = json({});
     }
 
     for (auto& mailData : _data["mailboxData"].items()) {
         if (!mailData.value().is_object()) {
-            throw std::runtime_error("Corrupted mailbox data");
+            _error = "Corrupted mailbox data";
         }
         if (!mailData.value().contains("uidl") || !mailData.value().contains("isRead")) {
-            throw std::runtime_error("Missing uidl or isRead field at maildata: " + mailData.key());
+            _error = "Missing uidl or isRead field at maildata: " + mailData.key();
         }
         if (!mailData.value()["uidl"].is_string() || !mailData.value()["isRead"].is_boolean()) {
-            throw std::runtime_error("Error type of uidl field or isRead field");
+            _error = "Error type of uidl field or isRead field";
         }
     }
 }
@@ -158,7 +198,7 @@ Credential ClientMailbox::getCredential() {
     return _cred;
 }
 
-json& ClientMailbox::getFolders() {
+ordered_json& ClientMailbox::getFolders() {
     return _data["folders"];
 }
 
@@ -191,11 +231,11 @@ void ClientMailbox::setMailIsRead(std::string _id) {
     _data["mailboxData"][_id]["isRead"] = true;
 }
 
-void ClientMailbox::fetch(std::string _host, std::string _port, const QString& _filterEval) {
+void ClientMailbox::fetch(std::string _host, std::string _port, const std::string& _filterEval) {
 
     POP3Client pop3Client(_host, _port, getCredential().getAddress().getReceiptAddress(), getCredential().getPassword());
     if (!pop3Client.connected()) {
-        _error = pop3Client._error;
+        _error = "-Cannot connect to POP3 Server";;
         return;
     }
     for (auto it : pop3Client._cacheUIDL) {
@@ -229,30 +269,31 @@ void ClientMailbox::fetch(std::string _host, std::string _port, const QString& _
     }
 }
 
-std::string ClientMailbox::filter(const std::string& _content, const QString& _filterEval) {
+std::string ClientMailbox::filter(const std::string& _content, const std::string& _filterEval) {
     mimetic::MimeEntity parsedData = parseMIMEEntity(_content);
-    QString from = QString::fromStdString(parsedData.header().from().str());
-    QString subject = QString::fromStdString(parsedData.header().subject());
+    std::string from = parsedData.header().from().str();
+    std::string subject = parsedData.header().subject();
     mimetic::MimeEntity textEntity;
     getMIMETextEntity(&parsedData, textEntity);
-    QString bodyText = QString::fromStdString(textEntity.body());
+    std::string bodyText = textEntity.body();
 
     if (_filterEval.length() > 0) {
         QJSEngine engine;
+        engine.installExtensions(QJSEngine::ConsoleExtension);
         QJSValueList args;
-        args << from << subject << bodyText;
-        QJSValue filterRes = engine.evaluate(_filterEval).call(args);
-        if (!filterRes.isString()) return defaultFilter(from, subject, bodyText);     // guard here because QString toString() and toStdString() are demanding operations
+        args << QString::fromStdString(from) << QString::fromStdString(subject) << QString::fromStdString(bodyText);
+        QJSValue filterRes = engine.evaluate("(function(from, subject, bodyText) {" + QString::fromStdString(_filterEval) + " })").call(args);
+        if (!filterRes.isString() || filterRes.isError()) return defaultFilter(from, subject, bodyText);     // guard here because QString toString() and toStdString() are demanding operations
         std::string res = filterRes.toString().toStdString();
         if (folderExists(res) && getFolders()[res] == true) return res;
     }
     return defaultFilter(from, subject, bodyText);
 }
 
-std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _subject, const QString& _bodyText) {
+std::string ClientMailbox::defaultFilter(const std::string& _from, const std::string& _subject, const std::string& _bodyText) {
     std::stringstream regExpr;
     std::regex p_r;
-    json& folders = getFolders();
+    ordered_json& folders = getFolders();
     for (auto& folderObject : folders.items()) {
         if (folderObject.value()["enabled"] == false) continue;
 
@@ -262,7 +303,7 @@ std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _s
                 regExpr << match << (i != folderObject.value()["from"].size() - 1) ? "|" : "";
             }
             p_r = std::regex(regExpr.str());
-            if (std::regex_search(_from.toStdString(), p_r)) {
+            if (std::regex_search(_from, p_r)) {
                 return folderObject.key();
             }
             regExpr.str("");
@@ -274,7 +315,7 @@ std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _s
                 regExpr << match << ((i != folderObject.value()["subjectKeyword"].size() - 1) ? "|" : "");
             }
             p_r = std::regex(regExpr.str());
-            if (std::regex_search(_subject.toStdString(), p_r)) {
+            if (std::regex_search(_subject, p_r)) {
                 return folderObject.key();
             }
             regExpr.str("");
@@ -286,7 +327,7 @@ std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _s
                 regExpr << match << (i != folderObject.value()["bodyKeyword"].size() - 1) ? "|" : "";
             }
             p_r = std::regex(regExpr.str());
-            if (std::regex_search(_bodyText.toStdString(), p_r)) {
+            if (std::regex_search(_bodyText, p_r)) {
                 return folderObject.key();
             }
         }
@@ -297,16 +338,20 @@ std::string ClientMailbox::defaultFilter(const QString& _from, const QString& _s
 void ClientMailbox::sendContent(std::string _host, std::string _port, MailContent& _mailContent) {
     SMTPClient smtpClient(_host, _port);
     if (!smtpClient.connected()) {
-        _error = smtpClient._error;
+        _error = "-Cannot connect to SMTP Server";
         return;
     }
     smtpClient.sequence(_mailContent);
+    _error = smtpClient._error;
 }
 
-
-ClientMailbox::~ClientMailbox() {
+void ClientMailbox::save() {
     std::filesystem::path localDataPath = std::string("mailboxes/" + _cred.getAddress().getReceiptAddress());
     std::ofstream configFile(localDataPath.append(".mailboxCfg.json"));
     configFile << std::setw(4) << _data << std::endl;
     configFile.close();
+}
+
+ClientMailbox::~ClientMailbox() {
+    save();
 }

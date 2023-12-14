@@ -24,6 +24,7 @@ qt_add_executable(Mail-Client
     src/test_unit.cpp
     src/SMTPClient.cpp
     src/POP3Client.cpp
+    src/gui/ConfigWidget.cpp
     src/gui/AttachmentListWidget.cpp
     src/gui/BoxShadowEffect.cpp
     src/gui/ContentWidget.cpp
@@ -33,6 +34,7 @@ qt_add_executable(Mail-Client
     src/mime-provider/Encoder.cpp
     src/mime-provider/MIMEParser.cpp
     src/mime-provider/MIMEInterface.cpp
+    src/local-client/ConfigProvider.cpp
     src/local-client/ClientMailbox.cpp
 )
 

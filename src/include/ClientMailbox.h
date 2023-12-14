@@ -17,7 +17,7 @@
 
 #include <QtQml/QJSEngine>
 
-using json = nlohmann::json;
+using namespace nlohmann;
 
 class Credential {
 private:
@@ -36,7 +36,7 @@ public:
 
 class ClientMailbox {
 private:
-    json _data;
+    ordered_json _data;
     Credential _cred;
 public:
     std::string _error{ "" };
@@ -44,18 +44,19 @@ public:
     ~ClientMailbox();
 
     Credential getCredential();
-    json& getFolders();
+    ordered_json& getFolders();
     bool folderExists(std::string);
     bool mailIsRead(std::string UIDL);
     bool mailDownloaded(std::string UIDL);
     void addFolder(std::string);
     void setMailIsRead(std::string);
 
+    void save();
     void dataIntegrity();
 
-    void fetch(std::string, std::string, const QString& = "");
-    std::string filter(const std::string&, const QString& = "");
-    std::string defaultFilter(const QString&, const QString&, const QString&);
+    void fetch(std::string, std::string, const std::string& = "");
+    std::string filter(const std::string&, const std::string& = "");
+    std::string defaultFilter(const std::string&, const std::string&, const std::string&);
     void sendContent(std::string, std::string, MailContent&);
 
     void init(Credential);

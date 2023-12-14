@@ -14,19 +14,39 @@
 #include "ClientMailbox.h"
 #include "SendMenu.h"
 #include "MailboxMenu.h"
+#include "ConfigWidget.h"
+#include "ConfigProvider.h"
+
+class SendMenu;
+class MailboxMenu;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
 public:
     inline static std::unique_ptr<ClientMailbox> _mailboxInstance = nullptr;
+    inline static MainWindow* _mainWindowInstance = nullptr;
+    inline static QWidget* _configPage = nullptr;
     MainWindow(QWidget* = nullptr);
-    virtual ~MainWindow() {}
+    virtual ~MainWindow() {
+        if(_configPage) {
+            delete _configPage;
+        }
+    }
 private slots:
     void directToSend();
     void directToMailbox();
+    void openConfig();
+
+public:
+    void updateConfig();
+
 private:
     QStackedWidget* _pages;
+    SendMenu* _sendPage;
+    MailboxMenu* _mailboxPage;
+
     void createMenus();
+    QAction* _configAction;
     QToolBar* _toolBar;
     QAction* _sendMenuAction;
     QAction* _mailboxMenuAction;

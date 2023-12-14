@@ -51,7 +51,7 @@ private:
     QToolButton* _submit;
 
 signals:
-    void attachmentSignal(const QString&);
+    void attachmentSignal(const QFileInfo&);
 private slots:
     void chooseSize(QAction*);
     void chooseFont(QAction*);

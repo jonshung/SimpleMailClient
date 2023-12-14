@@ -8,7 +8,7 @@ ContentWidget::ContentWidget(QWidget* parent) : QWidget(parent) {
     _body = new QTextEdit();
     QFont font = _body->font();
     _body->document()->setDocumentMargin(qreal(10));
-    _body->setMinimumSize(parent->geometry().width() * 0.85, parent->geometry().height() * 0.65);
+    _body->setMinimumSize(parent->geometry().width() * 0.85, parent->geometry().height() * 0.57);
     _body->setStyleSheet("font-size: 10px; border: none;");
     ContentWidget::connect(_body, &QTextEdit::currentCharFormatChanged, this, &ContentWidget::trackFont);
     ContentWidget::connect(_body, &QTextEdit::cursorPositionChanged, this, &ContentWidget::trackCursor);
@@ -394,18 +394,20 @@ void ContentWidget::attachment() {
     if (dialog.exec()) {
         fileNames = dialog.selectedFiles();
     }
+    const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
     for(QString strl : fileNames) {
         QFileInfo fInfo(strl);
         totalSize += fInfo.size();
-        if(totalSize > 20 * 1024 * 1024) {
-            QMessageBox warnBox;
-            warnBox.setText("File size limit is 20MB");
+        if (fInfo.size() >= configData->maxFileSize() || totalSize > configData->maxFileSize()) {
+            QMessageBox warnBox(this);
+            warnBox.setText("File size limit is " + QString::number(configData->maxFileSize() / (1024.0 * 1024.0)) + "MB");
             warnBox.exec();
             return;
         }
     }
-    for(QString strl : fileNames) {
-        emit attachmentSignal(strl);
+    for (QString strl : fileNames) {
+        QFileInfo fInfo(strl);
+        emit attachmentSignal(fInfo);
     }
 }
 

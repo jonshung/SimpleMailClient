@@ -45,30 +45,6 @@ MIMEAttachment mimeFromFile(const std::string& _filePath, const std::string& _de
     return _mime;
 }
 
-/*
-void printMIMEStructure(mimetic::MimeEntity* e, int tabIndent = 0) {
-    for (int c = tabIndent; c > 0; --c) {
-        std::cout << " ";
-    }
-    mimetic::Header& header = e->header();
-    std::cout << header.contentType() << std::endl;;
-    std::cout << header.contentDisposition() << ((header.contentDisposition().str().length() == 0) ? "" : "\r\n");
-
-    if (header.hasField("X-My-Custom-Header")) {
-        mimetic::Field field = header.field("X-My-Custom-Header");
-        std::cout << "Custom field: " << field.name()  << ": " << field.value() << std::endl;
-    }
-    if (header.contentDisposition().type() != "attachment" && !header.contentType().isMultipart()) {
-        std::cout << "Body: " << std::endl;
-        std::cout << e->body() << std::endl;
-    }
-    mimetic::MimeEntityList& bodyParts = e->body().parts();
-    mimetic::MimeEntityList::iterator mbeg = bodyParts.begin(), mend = bodyParts.end();
-    for (; mbeg != mend; ++mbeg) {
-        printMIMEStructure(*mbeg);
-    }
-}*/
-
 mimetic::MimeEntity parseMIMEEntity(std::string _buffer) {
     std::stringstream bufferStream(_buffer);
     mimetic::MimeEntity e(bufferStream);

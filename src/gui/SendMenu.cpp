@@ -15,9 +15,24 @@ SendMenu::SendMenu(QWidget* parent) : QWidget(parent) {
     this->setPalette(palette);
     this->setPalette(palette);
 
+    _fromReadOnly = new QLineEdit();
+    Credential cred = MainWindow::_mailboxInstance->getCredential();
+    QString fromField = QString::fromStdString(cred.getAddress().getReceiptName() + 
+                        ((cred.getAddress().getReceiptName().length() > 0) ? " " : "") + cred.getAddress().getReceiptAddress());
+    _fromReadOnly->setText(fromField);
+    _fromReadOnly->setReadOnly(true);
+    _fromReadOnly->setMinimumSize(parent->geometry().width(), 35);
+    _fromReadOnly->setTextMargins(10, 10, 10, 0);
+    _fromReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+
+    QPalette* paletteFrom = new QPalette();
+    paletteFrom->setColor(QPalette::Base, Qt::gray);
+    paletteFrom->setColor(QPalette::Text, Qt::darkGray);
+    _fromReadOnly->setPalette(*paletteFrom);
+
     _toEdit = new QLineEdit();
     _toEdit->setMinimumSize(parent->geometry().width(), 35);
-    _toEdit->setTextMargins(10, 10, 10, 10);
+    _toEdit->setTextMargins(10, 10, 10, 0);
     _toEdit->setStyleSheet("QLineEdit { font-size: 13px }");
     
     QPushButton* ccOpen = new QPushButton();
@@ -35,43 +50,48 @@ SendMenu::SendMenu(QWidget* parent) : QWidget(parent) {
     _ccEdit = new QLineEdit();
     _ccEdit->setMinimumSize(parent->geometry().width(), 35);
     _ccEdit->setStyleSheet("QLineEdit { font-size: 13px }");
-    _ccEdit->setTextMargins(10, 10, 10, 10);
+    _ccEdit->setTextMargins(10, 10, 10, 0);
 
     _bccEdit = new QLineEdit();
     _bccEdit->setMinimumSize(parent->geometry().width(), 35);
     _bccEdit->setStyleSheet("QLineEdit { font-size: 13px }");
-    _bccEdit->setTextMargins(10, 10, 10, 10);
+    _bccEdit->setTextMargins(10, 10, 10, 0);
     _bccEdit->contentsMargins().setBottom(30);
 
     _subjectEdit = new QLineEdit();
     _subjectEdit->setMinimumSize(parent->geometry().width(), 35);
     _subjectEdit->setStyleSheet("QLineEdit { font-size: 13px }");
-    _subjectEdit->setTextMargins(10, 10, 10, 10);
+    _subjectEdit->setTextMargins(10, 10, 10, 0);
     
     _toEdit->setPlaceholderText("To");
     _subjectEdit->setPlaceholderText("Subject");
     _ccEdit->setPlaceholderText("Cc");
     _bccEdit->setPlaceholderText("Bcc");
 
-    /*_submitButton = new QPushButton();
-    _submitButton->setText("&Send mail");
-    SendMenu::connect(_submitButton, &QPushButton::clicked, this, &SendMenu::submit);*/
-
     _contentEdit = new ContentWidget(this);
     _contentEdit->setMinimumWidth(parent->geometry().width());
 
-    mainLayout->addWidget(_toEdit, 0, 0, Qt::AlignLeft);
-    mainLayout->addWidget(ccOpen, 0, 1);
-    mainLayout->addWidget(bccOpen, 0, 2);
-    mainLayout->addWidget(_ccEdit, 1, 0, Qt::AlignLeft);
-    mainLayout->addWidget(_bccEdit, 2, 0, Qt::AlignLeft);
-    mainLayout->addWidget(_subjectEdit, 3, 0, Qt::AlignLeft);
-    mainLayout->addWidget(_contentEdit, 4, 0);
+    mainLayout->addWidget(_fromReadOnly, 0, 0, Qt::AlignLeft);
+    mainLayout->addWidget(_toEdit, 1, 0, Qt::AlignLeft);
+    mainLayout->addWidget(ccOpen, 1, 1);
+    mainLayout->addWidget(bccOpen, 1, 2);
+    mainLayout->addWidget(_ccEdit, 2, 0, Qt::AlignLeft);
+    mainLayout->addWidget(_bccEdit, 3, 0, Qt::AlignLeft);
+    mainLayout->addWidget(_subjectEdit, 4, 0, Qt::AlignLeft);
+    mainLayout->addWidget(_contentEdit, 5, 0);
 
     _ccEdit->setVisible(false);
     _bccEdit->setVisible(false);
 
     mainLayout->setContentsMargins(10, 10, 0, 0);
+}
+
+void SendMenu::updateConfig() {
+    if(_fromReadOnly == nullptr) return;
+    Credential cred = MainWindow::_mailboxInstance->getCredential();
+    QString fromField = QString::fromStdString(cred.getAddress().getReceiptName() +
+        ((cred.getAddress().getReceiptName().length() > 0) ? " " : "") + cred.getAddress().getReceiptAddress());
+    _fromReadOnly->setText(fromField);
 }
 
 void SendMenu::submit() {
@@ -127,7 +147,8 @@ void SendMenu::submit() {
     mailForm.setHTMLContent(contentHTML.toStdString());
     mailForm.setPlainContent(contentPlain.toStdString());
 
-    for(const QString& filepath : _contentEdit->attachmentListWidget()->attachments()) {
+    for(const QFileInfo& fileinfo : _contentEdit->attachmentListWidget()->attachments()) {
+        const QString& filepath = fileinfo.filePath();
         MIMEAttachment _mime = mimeFromFile(filepath.toStdString(), "", 20 * 1024 * 1024);
         if (_mime.getData().length() == 0) {
             continue;
@@ -135,10 +156,24 @@ void SendMenu::submit() {
         mailForm.addAttachment(_mime);
     }
 
-    MainWindow::_mailboxInstance->sendContent("localhost", "2225", mailForm);
-    if(MainWindow::_mailboxInstance->_error.length() > 0) {
+    const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
+
+    MainWindow::_mailboxInstance->sendContent(configData->SMTPServer(), configData->SMTPPort(), mailForm);
+    if (MainWindow::_mailboxInstance->_error.length() > 0 && MainWindow::_mailboxInstance->_error[0] == '-') {
         qDebug() << MainWindow::_mailboxInstance->_error;
         MainWindow::_mailboxInstance->_error = "";
+    } else {
+        QMessageBox confirm(this);
+        confirm.setText("Sent!");
+        confirm.setStandardButtons(QMessageBox::Ok);
+        confirm.exec();
+
+        _toEdit->setText("");
+        _ccEdit->setText("");
+        _bccEdit->setText("");
+        _subjectEdit->setText("");
+        _contentEdit->body()->clear();
+        _contentEdit->attachmentListWidget()->delAll();
     }
 }
 

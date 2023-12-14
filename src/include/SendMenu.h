@@ -17,6 +17,7 @@ class ContentWidget;
 class SendMenu : public QWidget {
     Q_OBJECT
 private:
+    QLineEdit* _fromReadOnly;
     QLineEdit* _toEdit;
     QLineEdit* _subjectEdit;
     QLineEdit* _ccEdit;
@@ -31,6 +32,7 @@ public:
     SendMenu(QWidget* = nullptr);
 
     ContentWidget* content();
+    void updateConfig();
     virtual ~SendMenu() {}
 };
 

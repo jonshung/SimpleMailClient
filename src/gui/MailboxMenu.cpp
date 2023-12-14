@@ -1,11 +1,14 @@
 #include "MailboxMenu.h"
 
 MailboxMenu::MailboxMenu(QWidget* parent) : QWidget(parent) {
-    QGridLayout* mLayout = new QGridLayout();
-    mLayout->setContentsMargins(20, 20, 20, 20);
-    setLayout(mLayout);
+    setGeometry(parent->geometry());
+    _Mlayout = new QGridLayout();
+    _Mlayout->setContentsMargins(20, 20, 20, 20);
+    setLayout(_Mlayout);
     _tree = new QTreeView();
     _tree->setFixedWidth(200);
+    _tree->setMinimumHeight(this->geometry().height() * 0.75);
+    _tree->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Minimum);
     _tree->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     _currentTemp = 0;
@@ -21,24 +24,17 @@ MailboxMenu::MailboxMenu(QWidget* parent) : QWidget(parent) {
     refetchTree();
     connect(_tree, &QTreeView::clicked, this, &MailboxMenu::showMail);
 
-    QWebEngineGlobalSettings::DnsMode dnsMode;
-    dnsMode.secureMode = QWebEngineGlobalSettings::SecureDnsMode::SystemOnly;
-    QWebEngineGlobalSettings::setDnsMode(dnsMode);
-    _display = new QWebEngineView(this);
-    _display->setHtml(QString(""));
-    _display->setProperty("current-mail", "");
-    _display->resize(970, 750);
-    _display->show();
-    _display->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    initHeader();
 
-    mLayout->addWidget(_tree, 0, 0, Qt::AlignLeft);
-    mLayout->addWidget(b1, 1, 0, Qt::AlignCenter);
-    mLayout->addWidget(_display, 0, 1);
+    _Mlayout->addWidget(_tree, 0, 0, Qt::AlignLeft);
+    _Mlayout->addWidget(b1, 1, 0, Qt::AlignCenter);
+    _attachmentList = new AttachmentListWidget(this, false, 200, 0);
 }
 
 void MailboxMenu::fetch() {
-    if(MainWindow::_mailboxInstance == nullptr) return;
-    MainWindow::_mailboxInstance->fetch("localhost", "2226");
+    if (MainWindow::_mailboxInstance == nullptr) return;
+    const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
+    MainWindow::_mailboxInstance->fetch(configData->POP3Server(), configData->POP3Port(), configData->customFilter());
     refetchTree();
 }
 
@@ -54,7 +50,7 @@ void MailboxMenu::refetchTree() {
     std::filesystem::path filterDirPath(QDir::currentPath().toStdString());
     filterDirPath.append("mailboxes/").append(MainWindow::_mailboxInstance->getCredential().getAddress().getReceiptAddress());
 
-    json filterData = MainWindow::_mailboxInstance->getFolders();
+    ordered_json filterData = MainWindow::_mailboxInstance->getFolders();
 
     for (auto& filter : filterData.items()) {
         QStandardItem* filterItem = new QStandardItem(QString::fromStdString(filter.key()));
@@ -75,10 +71,104 @@ void MailboxMenu::refetchTree() {
             QStandardItem* mailEntry = new QStandardItem(subj);
             mailEntry->setData(fInfo.filePath());
             filterItem->appendRow(mailEntry);
+            fileHandler.close();
         }
     }
     model->setHeaderData(0, Qt::Orientation::Horizontal, "Mails");
     _tree->setModel(model);
+}
+
+void MailboxMenu::initHeader() {
+    _mailContent = new QWidget(this);
+    //_mailContent->setMaximumHeight(10);
+    _mailContent->setStyleSheet("QLineEdit { border: none; border-bottom: 1px solid #dedede; outline-offset: 5px; }");
+    QGridLayout* headerLayout = new QGridLayout();
+    _mailContent->setLayout(headerLayout);
+
+    _fromReadOnly = new QLineEdit();
+    Credential cred = MainWindow::_mailboxInstance->getCredential();
+    QString fromField = QString::fromStdString(cred.getAddress().getReceiptName() +
+        ((cred.getAddress().getReceiptName().length() > 0) ? " " : "") + cred.getAddress().getReceiptAddress());
+    _fromReadOnly->setText(fromField);
+    _fromReadOnly->setReadOnly(true);
+    _fromReadOnly->setMinimumSize(geometry().width() * 0.73, 35);
+    _fromReadOnly->setTextMargins(10, 10, 10, 0);
+    _fromReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+
+    QPalette* paletteReadOnly = new QPalette();
+    paletteReadOnly->setColor(QPalette::Base, Qt::gray);
+    _fromReadOnly->setPalette(*paletteReadOnly);
+
+    _toReadOnly = new QLineEdit();
+    _toReadOnly->setReadOnly(true);
+    _toReadOnly->setMinimumSize(geometry().width() * 0.73, 35);
+    _toReadOnly->setTextMargins(10, 10, 10, 0);
+    _toReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+    _toReadOnly->setPalette(*paletteReadOnly);
+
+    _ccReadOnly = new QLineEdit();
+    _ccReadOnly->setReadOnly(true);
+    _ccReadOnly->setMinimumSize(geometry().width() * 0.73, 35);
+    _ccReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+    _ccReadOnly->setTextMargins(10, 10, 10, 0);
+    _ccReadOnly->setPalette(*paletteReadOnly);
+
+    _bccReadOnly = new QLineEdit();
+    _bccReadOnly->setReadOnly(true);
+    _bccReadOnly->setMinimumSize(geometry().width() * 0.73, 35);
+    _bccReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+    _bccReadOnly->setTextMargins(10, 10, 10, 0);
+    _bccReadOnly->contentsMargins().setBottom(30);
+    _bccReadOnly->setPalette(*paletteReadOnly);
+
+    _subjectReadOnly = new QLineEdit();
+    _subjectReadOnly->setMinimumSize(geometry().width() * 0.73, 35);
+    _subjectReadOnly->setStyleSheet("QLineEdit { font-size: 13px }");
+    _subjectReadOnly->setTextMargins(10, 10, 10, 0);
+    _subjectReadOnly->setPalette(*paletteReadOnly);
+
+    _toReadOnly->setPlaceholderText("To");
+    _subjectReadOnly->setPlaceholderText("Subject");
+    _ccReadOnly->setPlaceholderText("Cc");
+    _bccReadOnly->setPlaceholderText("Bcc");
+
+    headerLayout->addWidget(_fromReadOnly, 0, 0, Qt::AlignLeft);
+    headerLayout->addWidget(_toReadOnly, 1, 0, Qt::AlignLeft);
+    headerLayout->addWidget(_ccReadOnly, 2, 0, Qt::AlignLeft);
+    headerLayout->addWidget(_bccReadOnly, 3, 0, Qt::AlignLeft);
+    headerLayout->addWidget(_subjectReadOnly, 4, 0, Qt::AlignLeft);
+
+    headerLayout->setRowStretch(0, 0);
+    headerLayout->setRowStretch(1, 0);
+    headerLayout->setRowStretch(2, 0);
+    headerLayout->setRowStretch(3, 0);
+    headerLayout->setRowStretch(4, 0);
+
+    _fromReadOnly->setVisible(false);
+    _toReadOnly->setVisible(false);
+    _subjectReadOnly->setVisible(false);
+    _ccReadOnly->setVisible(false);
+    _bccReadOnly->setVisible(false);
+
+    _Mlayout->addWidget(_mailContent, 0, 1);
+
+    _display = new QWebEngineView(this);
+    _display->setHtml(QString(""));
+    _display->setProperty("current-mail", "");
+    _display->resize(970, 750);
+    _display->show();
+    _display->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    headerLayout->addWidget(_display, 5, 0);
+}
+
+void MailboxMenu::clear() {
+    if(_attachmentList != nullptr) _attachmentList->delAll();
+    if (_display != nullptr) _display->setHtml("");
+    _fromReadOnly->setVisible(false);
+    _toReadOnly->setVisible(false);
+    _subjectReadOnly->setVisible(false);
+    _ccReadOnly->setVisible(false);
+    _bccReadOnly->setVisible(false);
 }
 
 void MailboxMenu::showMail(const QModelIndex& idx) {
@@ -98,12 +188,113 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
         delete _currentTemp;
     }
 
+    clear();
+
     QFile fileHandler(itmDat.toString());
     if (!fileHandler.open(QIODevice::ReadOnly | QIODevice::Text)) return;
 
     QTextStream in(&fileHandler);
     std::string content = in.readAll().toStdString();
+    fileHandler.close();
+
     mimetic::MimeEntity e = parseMIMEEntity(content);
+
+    mimetic::MailboxList fromList = e.header().from();
+    mimetic::AddressList toList = e.header().to();
+    mimetic::AddressList ccList = e.header().cc();
+    mimetic::AddressList bccList = e.header().bcc();
+
+    if(fromList.size() > 0) {
+        QString label = "From: ";
+        int i = 0;
+        for (const mimetic::Mailbox& mb : fromList) {
+            QString mailString = "";
+            if (mb.label().length() > 0 && mb.label().find("\"\"") == mb.label().npos) {
+                mailString.append(mb.label() + " " + mb.mailbox() + "@" + mb.domain());
+            } else {
+                mailString.append(mb.mailbox() + "@" + mb.domain());
+            }
+            label.append(mailString);
+            if(i < fromList.size() - 1) {
+                label.append(", ");
+            }
+            i++;
+        }
+        _fromReadOnly->setText(label);
+        _fromReadOnly->setVisible(true);
+    } else {
+        _fromReadOnly->setVisible(false);
+    }
+    if (toList.size() > 0) {
+        QString label = "To: ";
+        int i = 0;
+        for (const mimetic::Address& addr : toList) {
+            QString mailString = "";
+            if (addr.mailbox().label().length() > 0 && addr.mailbox().label().find("\"\"") == addr.mailbox().label().npos) {
+                mailString.append(addr.mailbox().label() + " " + addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            else {
+                mailString.append(addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            label.append(mailString);
+            if (i < toList.size() - 1) {
+                label.append(", ");
+            }
+            i++;
+        }
+        _toReadOnly->setText(label);
+        _toReadOnly->setVisible(true);
+    } else {
+        _toReadOnly->setVisible(false);
+    }
+    if (ccList.size() > 0) {
+        QString label = "Cc: ";
+        int i = 0;
+        for (const mimetic::Address& addr : ccList) {
+            QString mailString = "";
+            if (addr.mailbox().label().length() > 0 && addr.mailbox().label().find("\"\"") == addr.mailbox().label().npos) {
+                mailString.append(addr.mailbox().label() + " " + addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            else {
+                mailString.append(addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            label.append(mailString);
+            if (i < ccList.size() - 1) {
+                label.append(", ");
+            }
+            i++;
+        }
+        _ccReadOnly->setText(label);
+        _ccReadOnly->setVisible(true);
+    } else {
+        _ccReadOnly->setVisible(false);
+    }
+    if (bccList.size() > 0) {
+        QString label = "Bcc: ";
+        int i = 0;
+        for (const mimetic::Address& addr : bccList) {
+            QString mailString = "";
+            if (addr.mailbox().label().length() > 0 && addr.mailbox().label().find("\"\"") == addr.mailbox().label().npos) {
+                mailString.append(addr.mailbox().label() + " " + addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            else {
+                mailString.append(addr.mailbox().mailbox() + "@" + addr.mailbox().domain());
+            }
+            label.append(mailString);
+            if (i < bccList.size() - 1) {
+                label.append(", ");
+            }
+            i++;
+        }
+        _bccReadOnly->setText(label);
+        _bccReadOnly->setVisible(true);
+    } else {
+        _bccReadOnly->setVisible(false);
+    }
+    
+    _subjectReadOnly->setText(QString::fromStdString(e.header().subject()));
+    _subjectReadOnly->setVisible(true);
+
     mimetic::MimeEntity res;
     getMIMETextEntity(&e, res);
     mimetic::QP::Decoder decoderQp = mimetic::QP::Decoder();
@@ -124,11 +315,22 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
         for (mimetic::MimeEntity* att : attachments) {
             att->body().code(decoder64);
             std::string filename = att->header().contentDisposition().param("filename");
-            QImage img;
-            img.loadFromData(att->body());
-            QString imgSavePath = _currentTemp->path();
-            imgSavePath.append("/" + filename);
-            img.save(imgSavePath);
+            QString fileNewPath = _currentTemp->path();
+            fileNewPath.append("/" + filename);
+
+            if(att->header().contentType().type() == "image") {
+                QImage img;
+                img.loadFromData(att->body());
+                img.save(fileNewPath);
+            } else {
+                QFile fl(fileNewPath);
+                if (fl.open(QIODevice::WriteOnly | QIODevice::Text)) {
+                    fl.write(att->body().c_str());
+                }
+                fl.close();
+            }
+
+            _attachmentList->add(QFileInfo(fileNewPath));
         }
     }
     _display->setHtml(cnt, QUrl::fromUserInput(relPath));
