@@ -22,6 +22,7 @@ void AttachmentListWidget::add(const QFileInfo& fInfo) {
     const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
     if ((fInfo.size() + _totalSize) > configData->maxFileSize()) {
         QMessageBox warnBox(parentWidget());
+        warnBox.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
         warnBox.setText("Files size limit is " + QString::number(configData->maxFileSize() / (1024.0 * 1024.0)) + "MB");
         warnBox.exec();
         return;
@@ -53,6 +54,7 @@ void AttachmentListWidget::delSig() {
     }
 
     QMessageBox confirm(this);
+    confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     confirm.setText("Do you want to delete " + wid->text() + "?");
     confirm.setStandardButtons(QMessageBox::Yes | QMessageBox::Cancel);
     confirm.setDefaultButton(QMessageBox::Cancel);
@@ -66,7 +68,7 @@ void AttachmentListWidget::execDel(QWidget* wid) {
     QVariant vl = wid->property("filename");
     int idx = -1;
     if (vl.isValid() && !vl.isNull()) {
-        int idx = _Mlayout->indexOf(wid);
+        idx = _Mlayout->indexOf(wid);
     }
 
     _Mlayout->removeWidget(wid);
@@ -124,7 +126,7 @@ QPushButton* AttachmentListWidget::getAttachmentWidget(const QString& filename) 
     }
     wid->setStyleSheet(styleSheet);
     wid->setFixedSize(160, 40);
-    if(fInfo.suffix() == "jpg" || fInfo.suffix() == "png") {
+    if(fInfo.suffix() == "jpg" || fInfo.suffix() == "png" || fInfo.suffix() == "bmp") {
         wid->setIcon(QIcon(filename));
         wid->setIconSize(QSize(30, 30));
     }

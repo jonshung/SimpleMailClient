@@ -15,6 +15,7 @@
 #include <QtCore/QHash>
 #include <QShortcut>
 #include <QtWidgets/QFileDialog>
+#include <QImageReader>
 #include <utility>
 
 #include "BoxShadowEffect.h"
@@ -48,6 +49,7 @@ private:
     QToolButton* _indent;
     QToolButton* _outdent;
     QToolButton* _attachment;
+    QToolButton* _imageInsert;
     QToolButton* _submit;
 
 signals:
@@ -70,6 +72,7 @@ private slots:
     void outdent();
 
     void attachment();
+    void insertImage();
 
     void trackFont(const QTextCharFormat&);
     void trackCursor();

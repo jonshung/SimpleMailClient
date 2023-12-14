@@ -33,7 +33,7 @@ ConfigProvider::ConfigProvider(const std::string& filepath) {
         defaultConfig["POP3 Port"] = "2226";
         defaultConfig["Custom filter"] = "";
         defaultConfig["Autofetch"] = true;
-        defaultConfig["Autofetch time"] = 5 * 60;
+        defaultConfig["Autofetch time"] = 3 * 60;
         defaultConfig["Max file size"] = 20 * 1024 * 1024;
 
         _configData = defaultConfig;

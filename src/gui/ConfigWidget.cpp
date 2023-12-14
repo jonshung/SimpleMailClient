@@ -1,19 +1,5 @@
 #include "ConfigWidget.h"
 
-/*
-
-            defaultConfig["User"] = "";
-            defaultConfig["Address"] = "";
-            defaultConfig["Password"] = "";
-            defaultConfig["SMTP Server"] = "localhost";
-            defaultConfig["SMTP Port"] = "2225";
-            defaultConfig["POP3 Server"] = "localhost";
-            defaultConfig["POP3 Port"] = "2226";
-            defaultConfig["Custom filter"] = "";
-            defaultConfig["Autofetch"] = true;
-            defaultConfig["Autofetch time"] = 5 * 60;
-            defaultConfig["Max file size"] = 20 * 1024 * 1024;
-*/
 ConfigWidget::ConfigWidget(QWidget* parent) : QWidget(parent) {
     resize(850, 400);
     setWindowTitle("Configuration");
@@ -90,6 +76,7 @@ void ConfigWidget::save() {
     if (MainWindow::_mainWindowInstance) MainWindow::_mainWindowInstance->updateConfig();
 
     QMessageBox confirm(this);
+    confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
     confirm.setText("Saved!");
     confirm.setStandardButtons(QMessageBox::Ok);
     confirm.exec();
@@ -98,6 +85,7 @@ void ConfigWidget::save() {
 void ConfigWidget::closeEvent(QCloseEvent* ev) {
     if(_changed) {
         QMessageBox confirm(this);
+        confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
         confirm.setText("You have unsaved changes");
         confirm.setInformativeText("closing will lose all previous changes, do you want to continue?");
         confirm.setStandardButtons(QMessageBox::Yes | QMessageBox::SaveAll | QMessageBox::Cancel);

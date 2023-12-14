@@ -11,5 +11,6 @@
         <file>../resources/indent.png</file>
         <file>../resources/outdent.png</file>
         <file>../resources/attachment.png</file>
+        <file>../resources/insert-image.png</file>
     </qresource>
 </RCC>

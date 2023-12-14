@@ -39,6 +39,8 @@ private slots:
 
 public:
     void updateConfig();
+    SendMenu* sendPage();
+    MailboxMenu* mailboxPage();
 
 private:
     QStackedWidget* _pages;

@@ -16,6 +16,7 @@
 #include <QDir>
 #include <filesystem>
 #include <QtWidgets/QLineEdit>
+#include <QtCore/QTimer>
 
 #include "AttachmentListWidget.h"
 #include "MainWindow.h"
@@ -31,6 +32,7 @@ private:
     AttachmentListWidget* _attachmentList;
     QWebEngineView* _display;
     QTemporaryDir* _currentTemp = 0;
+    QTimer* _autofetchTimer;
 
 private:
     QLineEdit* _fromReadOnly;
@@ -40,12 +42,14 @@ private:
     QLineEdit* _bccReadOnly;
 
     void initHeader();
+public slots:
+    void fetch();
 private slots:
     void showMail(const QModelIndex&);
-    void fetch();
 public:
     MailboxMenu(QWidget* = nullptr);
     void refetchTree();
+    void checkConfigUpdate();
     void clear();
     inline virtual ~MailboxMenu() {
         if(_currentTemp == nullptr) return;

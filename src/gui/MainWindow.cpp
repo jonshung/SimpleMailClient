@@ -45,6 +45,7 @@ void MainWindow::updateConfig() {
     if (_mailboxPage != nullptr) {
         _mailboxPage->clear();
         _mailboxPage->refetchTree();
+        _mailboxPage->checkConfigUpdate();
     }
 }
 
@@ -72,6 +73,15 @@ void MainWindow::createMenus() {
     _toolBar->addAction(_configAction);
     _toolBar->setMovable(false);
     addToolBar(Qt::TopToolBarArea, _toolBar);
+}
+
+
+SendMenu* MainWindow::sendPage() {
+    return _sendPage;
+}
+
+MailboxMenu* MainWindow::mailboxPage() {
+    return _mailboxPage;
 }
 
 void MainWindow::directToMailbox() {

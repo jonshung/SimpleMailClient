@@ -114,8 +114,15 @@ void ContentWidget::initToolbar() {
     attachmentAction->setIcon(QIcon(":/resources/attachment.png"));
     attachmentAction->setToolTip("Add an attachment");
     _attachment->setDefaultAction(attachmentAction);
-    _attachment->setStyleSheet("QToolButton { margin-right: 5px; }");
+    _attachment->setStyleSheet("QToolButton { margin-right: 10px; }");
     ContentWidget::connect(attachmentAction, &QAction::triggered, this, &ContentWidget::attachment);
+
+    _imageInsert = new QToolButton();
+    QAction* insertImageAction = new QAction(_imageInsert);
+    insertImageAction->setIcon(QIcon(":/resources/insert-image.png"));
+    insertImageAction->setToolTip("Insert image");
+    _imageInsert->setDefaultAction(insertImageAction);
+    ContentWidget::connect(insertImageAction, &QAction::triggered, this, &ContentWidget::insertImage);
 
     _submit = new QToolButton();
     QAction* submitAction = new QAction(_submit);
@@ -145,6 +152,7 @@ void ContentWidget::initToolbar() {
     _toolbar->addWidget(_indent);
     _toolbar->addSeparator();
     _toolbar->addWidget(_attachment);
+    _toolbar->addWidget(_imageInsert);
     _toolbar->addWidget(_submit);
 
     _toolbar->raise();
@@ -240,7 +248,7 @@ void ContentWidget::showEvent(QShowEvent* ev) {
     QRect basedGeometry = body()->geometry();
     int centerH = basedGeometry.center().x() - (basedGeometry.width() - centerShadowEffect->distance() * 5) / 2;
     int centerV = this->geometry().bottom() - 80 - centerShadowEffect->distance() * 2;
-    _toolbar->setGeometry(centerH, centerV, basedGeometry.width() * 0.9 - centerShadowEffect->distance() * 5, 40);
+    _toolbar->setGeometry(centerH, centerV, basedGeometry.width() * 0.93 - centerShadowEffect->distance() * 5, 40);
     _fontChooser->setText(body()->font().family());
 
     _body->setFontPointSize(15);    // default
@@ -407,6 +415,34 @@ void ContentWidget::attachment() {
     }
     for (QString strl : fileNames) {
         QFileInfo fInfo(strl);
+        emit attachmentSignal(fInfo);
+    }
+}
+
+void ContentWidget::insertImage() {
+    QFileDialog dialog(this);
+    dialog.setNameFilter("Image Files (*.png *.jpg *.bmp)");
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setViewMode(QFileDialog::Detail);
+
+    QStringList fileNames;
+    qint64 totalSize = 0;
+    if (dialog.exec()) {
+        fileNames = dialog.selectedFiles();
+    }
+    for (QString strl : fileNames) {
+        QFileInfo fInfo(strl);
+        QUrl Uri(QString("%1").arg(fInfo.fileName()));
+        QImage image = QImageReader(strl).read();
+
+        QTextDocument* textDocument = _body->document();
+        textDocument->addResource(QTextDocument::ImageResource, Uri, QVariant(image));
+        QTextCursor cursor = _body->textCursor();
+        QTextImageFormat imageFormat;
+        imageFormat.setWidth(qMin(image.width(), 162));
+        imageFormat.setHeight(qMin(image.height(), 216));
+        imageFormat.setName(Uri.toString());
+        cursor.insertImage(imageFormat);
         emit attachmentSignal(fInfo);
     }
 }

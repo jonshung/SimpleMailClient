@@ -15,7 +15,12 @@ static const std::unordered_map<std::string, std::string> __supported = {
     std::make_pair("", "application/octet-stream"),
     std::make_pair("jpg", "image/jpeg"),
     std::make_pair("png", "image/png"),
-    std::make_pair("gif", "image/gif")
+    std::make_pair("gif", "image/gif"),
+    std::make_pair("bmp", "image/bmp"),
+    std::make_pair("txt", "text/plain"),
+    std::make_pair("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    std::make_pair("doc", "application/msword"),
+    std::make_pair("pdf", "application/pdf")
 };
 
 static std::string encodeToString(int);

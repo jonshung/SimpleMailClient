@@ -204,7 +204,7 @@ ordered_json& ClientMailbox::getFolders() {
 
 bool ClientMailbox::mailIsRead(std::string _uidl) {
     if (!mailDownloaded(_uidl)) return false;
-    return _data["mailBoxData"][_uidl]["isRead"];
+    return _data["mailboxData"][_uidl]["isRead"];
 }
 
 bool ClientMailbox::mailDownloaded(std::string _uidl) {

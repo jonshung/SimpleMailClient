@@ -29,10 +29,28 @@ MailboxMenu::MailboxMenu(QWidget* parent) : QWidget(parent) {
     _Mlayout->addWidget(_tree, 0, 0, Qt::AlignLeft);
     _Mlayout->addWidget(b1, 1, 0, Qt::AlignCenter);
     _attachmentList = new AttachmentListWidget(this, false, 200, 0);
+
+    const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
+    if(configData->autofetch()) {
+        _autofetchTimer = new QTimer(this);
+        connect(_autofetchTimer, &QTimer::timeout, this, &MailboxMenu::fetch);
+        _autofetchTimer->start(configData->autofetchTime() * 1000);
+    }
+}
+
+void MailboxMenu::checkConfigUpdate() {
+    const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
+    if (_autofetchTimer) {
+        if (!configData->autofetch()) _autofetchTimer->stop();
+        else {
+            _autofetchTimer->start(configData->autofetchTime() * 1000);
+        }
+    }
 }
 
 void MailboxMenu::fetch() {
     if (MainWindow::_mailboxInstance == nullptr) return;
+    qDebug() << "fetching new data...";
     const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
     MainWindow::_mailboxInstance->fetch(configData->POP3Server(), configData->POP3Port(), configData->customFilter());
     refetchTree();
@@ -59,6 +77,7 @@ void MailboxMenu::refetchTree() {
         if (!filterDir.exists()) {
             std::filesystem::create_directories(filterDir.filesystemPath());
         }
+        int unread = 0;
         for (const QFileInfo fInfo : filterDir.entryInfoList()) {
             if (!fInfo.isFile() || fInfo.suffix() != "msg") continue;
             QFile fileHandler(fInfo.filePath());
@@ -69,9 +88,23 @@ void MailboxMenu::refetchTree() {
             mimetic::MimeEntity e = parseMIMEEntity(content);
             QString subj = QString::fromStdString(extractSubject(&e));
             QStandardItem* mailEntry = new QStandardItem(subj);
+
+            if(MainWindow::_mailboxInstance) {
+                if(!MainWindow::_mailboxInstance->mailIsRead(fInfo.fileName().toStdString())) {
+                    QFont tFont = mailEntry->font();
+                    tFont.setBold(true);
+                    mailEntry->setFont(tFont);
+                    unread++;
+                }
+            }
             mailEntry->setData(fInfo.filePath());
             filterItem->appendRow(mailEntry);
             fileHandler.close();
+        }
+        if(unread > 0) {
+            QFont tFont = filterItem->font();
+            tFont.setBold(true);
+            filterItem->setFont(tFont);
         }
     }
     model->setHeaderData(0, Qt::Orientation::Horizontal, "Mails");
@@ -196,6 +229,16 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
     QTextStream in(&fileHandler);
     std::string content = in.readAll().toStdString();
     fileHandler.close();
+
+    // read
+    QString tfileName = QFileInfo(itmDat.toString()).fileName();
+    if(MainWindow::_mailboxInstance) {
+        const std::unique_ptr<ClientMailbox>& mbl = MainWindow::_mailboxInstance;
+        if (!mbl->mailIsRead(tfileName.toStdString())) {
+            mbl->setMailIsRead(tfileName.toStdString());
+            refetchTree();
+        }
+    }
 
     mimetic::MimeEntity e = parseMIMEEntity(content);
 

@@ -102,6 +102,14 @@ void SendMenu::submit() {
     mailForm.setFrom(MainWindow::_mailboxInstance->getCredential().getAddress());
 
     QString toField = _toEdit->text();
+    if(toField.length() <= 0) {
+        QMessageBox confirm(this);
+        confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+        confirm.setText("Must atleast specify a valid recipient");
+        confirm.setStandardButtons(QMessageBox::Ok);
+        confirm.exec();
+        return;
+    }
     QString subjectField = _subjectEdit->text();
     QString ccField = _ccEdit->text();
     QString bccField = _bccEdit->text();
@@ -164,6 +172,7 @@ void SendMenu::submit() {
         MainWindow::_mailboxInstance->_error = "";
     } else {
         QMessageBox confirm(this);
+        confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
         confirm.setText("Sent!");
         confirm.setStandardButtons(QMessageBox::Ok);
         confirm.exec();
@@ -174,6 +183,10 @@ void SendMenu::submit() {
         _subjectEdit->setText("");
         _contentEdit->body()->clear();
         _contentEdit->attachmentListWidget()->delAll();
+
+        if (MainWindow::_mainWindowInstance->mailboxPage()) {
+            MainWindow::_mainWindowInstance->mailboxPage()->fetch();
+        }
     }
 }
 
