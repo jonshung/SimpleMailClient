@@ -86,7 +86,7 @@ void AttachmentListWidget::execShow(QWidget* wid) {
     if (!vl.isValid() || vl.isNull()) return;
     QString path = vl.toString();
     QFileInfo info(path);
-#if defined(Q_OS_WIN)
+#if ( defined (_WIN32) || defined (_WIN64) )
     QStringList args;
     if (!info.isDir())
         args << "/select,";
@@ -108,7 +108,7 @@ void AttachmentListWidget::execShow(QWidget* wid) {
     if (!QProcess::execute("/usr/bin/osascript", args))
         return;
 #endif
-    QDesktopServices::openUrl(QUrl::fromLocalFile(info.isDir() ? path : info.path()));
+    QDesktopServices::openUrl(QUrl::fromLocalFile(info.isDir() ? path : info.filePath()));
 }
 
 QPushButton* AttachmentListWidget::getAttachmentWidget(const QString& filename) {

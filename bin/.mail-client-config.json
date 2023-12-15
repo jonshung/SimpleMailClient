@@ -1,0 +1,13 @@
+{
+    "User": "",
+    "Address": "",
+    "Password": "",
+    "SMTP Server": "localhost",
+    "SMTP Port": "2225",
+    "POP3 Server": "localhost",
+    "POP3 Port": "2226",
+    "Custom filter": "",
+    "Autofetch": false,
+    "Autofetch time": 180,
+    "Max file size": 20971520
+}

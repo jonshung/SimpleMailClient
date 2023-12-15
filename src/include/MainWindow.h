@@ -13,7 +13,11 @@
 
 #include "ClientMailbox.h"
 #include "SendMenu.h"
+
+#if ( defined (LINUX) || defined (__linux__) )
 #include "MailboxMenu.h"
+#endif
+
 #include "ConfigWidget.h"
 #include "ConfigProvider.h"
 
@@ -40,7 +44,9 @@ private slots:
 public:
     void updateConfig();
     SendMenu* sendPage();
+#if ( defined (LINUX) || defined (__linux__) )
     MailboxMenu* mailboxPage();
+#endif
 
 private:
     QStackedWidget* _pages;

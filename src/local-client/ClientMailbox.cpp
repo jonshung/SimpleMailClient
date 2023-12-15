@@ -270,6 +270,7 @@ void ClientMailbox::fetch(std::string _host, std::string _port, const std::strin
 }
 
 std::string ClientMailbox::filter(const std::string& _content, const std::string& _filterEval) {
+#if ( defined (LINUX) || defined (__linux__) )
     mimetic::MimeEntity parsedData = parseMIMEEntity(_content);
     std::string from = parsedData.header().from().str();
     std::string subject = parsedData.header().subject();
@@ -287,6 +288,7 @@ std::string ClientMailbox::filter(const std::string& _content, const std::string
         std::string res = filterRes.toString().toStdString();
         if (folderExists(res) && getFolders()[res] == true) return res;
     }
+#endif
     return defaultFilter(from, subject, bodyText);
 }
 

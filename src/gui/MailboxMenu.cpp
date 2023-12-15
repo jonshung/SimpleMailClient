@@ -56,6 +56,7 @@ void MailboxMenu::fetch() {
     refetchTree();
 }
 
+#if ( defined (LINUX) || defined (__linux__) )
 void MailboxMenu::refetchTree() {
     if (_tree->model() != nullptr) {
         delete _tree->model();
@@ -110,6 +111,9 @@ void MailboxMenu::refetchTree() {
     model->setHeaderData(0, Qt::Orientation::Horizontal, "Mails");
     _tree->setModel(model);
 }
+#else
+void MailboxMenu::refetchTree() {}
+#endif
 
 void MailboxMenu::initHeader() {
     _mailContent = new QWidget(this);
@@ -203,6 +207,8 @@ void MailboxMenu::clear() {
     _ccReadOnly->setVisible(false);
     _bccReadOnly->setVisible(false);
 }
+
+#if ( defined (LINUX) || defined (__linux__) )
 
 void MailboxMenu::showMail(const QModelIndex& idx) {
     QStandardItemModel* mdl = qobject_cast<QStandardItemModel*>(_tree->model());
@@ -347,7 +353,7 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
 
     std::vector<mimetic::MimeEntity*> attachments;
     getMIMEAttachments(&e, attachments);
-    _currentTemp = new QTemporaryDir();
+    _currentTemp = new QTemporaryDir("./");
     QString relPath = "";
     if (_currentTemp->isValid()) {
         relPath = _currentTemp->path();
@@ -378,5 +384,8 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
     }
     _display->setHtml(cnt, QUrl::fromUserInput(relPath));
 }
+#else
+void MailboxMenu::showMail(const QModelIndex&) {}
+#endif
 
 #include "moc_MailboxMenu.cpp"

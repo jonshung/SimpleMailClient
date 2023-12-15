@@ -23,7 +23,9 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     QWidget* welcomeMenu = new QWidget();
     welcomeMenu->setLayout(centralLayout);
     _sendPage = new SendMenu(this);
+#if ( defined (LINUX) || defined (__linux__) )
     _mailboxPage = new MailboxMenu(this);
+#endif
 
     _pages->addWidget(welcomeMenu);
     _pages->addWidget(_sendPage);
@@ -32,7 +34,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     setCentralWidget(_pages);
     createMenus();
 
-    QString message = tr("Welcome to the simple mail client, start by selecting an item on the menu bar");
+    QString message = tr("Welcome to the simple mail client, start by configuring your profile using the Configure button");
     statusBar()->showMessage(message);
 }
 
@@ -54,9 +56,11 @@ void MainWindow::createMenus() {
     _sendMenuAction->setStatusTip(tr("Go to send menu"));
     connect(_sendMenuAction, &QAction::triggered, this, &MainWindow::directToSend);
 
+#if ( defined (LINUX) || defined (__linux__) )
     _mailboxMenuAction = new QAction(tr("&Mailbox"));
     _mailboxMenuAction->setStatusTip(tr("Go to mailbox"));
     connect(_mailboxMenuAction, &QAction::triggered, this, &MainWindow::directToMailbox);
+#endif
 
     _configAction = new QAction(tr("&Configure"));
     _configAction->setStatusTip(tr("Open configuration"));
@@ -64,7 +68,9 @@ void MainWindow::createMenus() {
 
     _toolBar = new QToolBar(this);
     _toolBar->addAction(_sendMenuAction);
+#if ( defined (LINUX) || defined (__linux__) )
     _toolBar->addAction(_mailboxMenuAction);
+#endif
 
     QWidget* spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -80,9 +86,11 @@ SendMenu* MainWindow::sendPage() {
     return _sendPage;
 }
 
+#if ( defined (LINUX) || defined (__linux__) )
 MailboxMenu* MainWindow::mailboxPage() {
     return _mailboxPage;
 }
+#endif
 
 void MainWindow::directToMailbox() {
     if (_pages->currentIndex() == 2) {

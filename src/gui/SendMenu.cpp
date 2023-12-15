@@ -102,6 +102,14 @@ void SendMenu::submit() {
     mailForm.setFrom(MainWindow::_mailboxInstance->getCredential().getAddress());
 
     QString toField = _toEdit->text();
+    if (_fromReadOnly->text().length() <= 0) {
+        QMessageBox confirm(this);
+        confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+        confirm.setText("Not yet logged in");
+        confirm.setStandardButtons(QMessageBox::Ok);
+        confirm.exec();
+        return;
+    }
     if(toField.length() <= 0) {
         QMessageBox confirm(this);
         confirm.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);

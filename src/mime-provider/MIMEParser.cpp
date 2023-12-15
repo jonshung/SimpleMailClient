@@ -45,6 +45,8 @@ MIMEAttachment mimeFromFile(const std::string& _filePath, const std::string& _de
     return _mime;
 }
 
+#if ( defined (LINUX) || defined (__linux__) )
+
 mimetic::MimeEntity parseMIMEEntity(std::string _buffer) {
     std::stringstream bufferStream(_buffer);
     mimetic::MimeEntity e(bufferStream);
@@ -89,3 +91,5 @@ void getMIMEAttachments(mimetic::MimeEntity* e, std::vector<mimetic::MimeEntity*
         }
     }
 }
+
+#endif

@@ -1,0 +1,38 @@
+{
+    "user": "jons hung",
+    "address": "jonsphilogy@gmail.com",
+    "password": "testing",
+    "folders": {
+        "Inbox": {
+            "enabled": true,
+            "from": [],
+            "subjectKeyword": [],
+            "bodyKeyword": []
+        },
+        "Spam": {
+            "enabled": true,
+            "from": [],
+            "subjectKeyword": [],
+            "bodyKeyword": []
+        },
+        "Project": {
+            "enabled": true,
+            "from": [],
+            "subjectKeyword": [],
+            "bodyKeyword": []
+        },
+        "Work": {
+            "enabled": true,
+            "from": [],
+            "subjectKeyword": [],
+            "bodyKeyword": []
+        },
+        "Important": {
+            "enabled": true,
+            "from": [],
+            "subjectKeyword": [],
+            "bodyKeyword": []
+        }
+    },
+    "mailboxData": {}
+}
