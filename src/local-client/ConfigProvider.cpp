@@ -2,7 +2,7 @@
 #include <QDebug>
 
 void ConfigProvider::init() {
-    if(_configProvider) return;
+    if (_configProvider) return;
     _configProvider = std::make_unique<ConfigProvider>();
 }
 
@@ -21,7 +21,7 @@ ConfigProvider::ConfigProvider(const std::string& filepath) {
     std::fstream configHandler;
     _configPath = syspath;
     if (!std::filesystem::is_regular_file(syspath)) {
-        qDebug() << "creating configure file at: " << QString::fromStdString(_configPath);
+        qDebug() << "creating configure file at: " << QString::fromStdString(_configPath.string());
         configHandler.open(syspath, std::fstream::out);
         ordered_json defaultConfig;
         defaultConfig["User"] = "";
