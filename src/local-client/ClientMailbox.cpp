@@ -29,19 +29,19 @@ void Credential::setAddress(MailboxAddress _vl) {
 ClientMailbox::ClientMailbox(Credential _info) {
     _cred = _info;
     qDebug() << "Creating client profile...";
+    
     std::filesystem::path localDataPath = std::filesystem::current_path();
     localDataPath.append(std::string("mailboxes/" + _info.getAddress().getReceiptAddress()));
     if (!std::filesystem::is_directory(localDataPath)) {
         std::filesystem::create_directories(localDataPath);
     }
-    if(_cred.getAddress().getReceiptAddress().length() > 0) init(_info);
+    init(_info);
 }
 
 void ClientMailbox::init(Credential _credInfo) {
     MailboxAddress _info = _credInfo.getAddress();
     std::filesystem::path localDataPath = std::string("mailboxes/" + _info.getReceiptAddress());
     if (!std::filesystem::is_regular_file(localDataPath / ".mailboxCfg.json")) {
-        std::ofstream configFile(localDataPath / ".mailboxCfg.json");
         ordered_json defaultCfgData;
         defaultCfgData["user"] = _info.getReceiptName();
         defaultCfgData["address"] = _info.getReceiptAddress();
@@ -80,8 +80,12 @@ void ClientMailbox::init(Credential _credInfo) {
         };
         defaultCfgData["mailboxData"] = json({});
         _data = defaultCfgData;
-        configFile << std::setw(4) << defaultCfgData << std::endl;
-        configFile.close();
+
+        if (_info.getReceiptAddress().length() > 0) {
+            std::ofstream configFile(localDataPath / ".mailboxCfg.json");
+            configFile << std::setw(4) << defaultCfgData << std::endl;
+            configFile.close();
+        }
     }
     else {
         std::ifstream configFile(localDataPath / ".mailboxCfg.json");
@@ -223,12 +227,13 @@ void ClientMailbox::addFolder(std::string _folder) {
         {"from", json::array({})},
         {"subjectKeyword", json::array({})},
         {"bodyKeyword", json::array({})}
-    };;
+    };
 }
 
 void ClientMailbox::setMailIsRead(std::string _id) {
     if (!mailDownloaded(_id)) return;
     _data["mailboxData"][_id]["isRead"] = true;
+    save();
 }
 
 void ClientMailbox::fetch(std::string _host, std::string _port, const std::string& _filterEval) {
@@ -267,16 +272,17 @@ void ClientMailbox::fetch(std::string _host, std::string _port, const std::strin
 
         _data["mailboxData"][uidl] = { {"uidl", uidl}, {"isRead", false} };
     }
+    save();
 }
 
 std::string ClientMailbox::filter(const std::string& _content, const std::string& _filterEval) {
-#if ( defined (LINUX) || defined (__linux__) )
-    mimetic::MimeEntity parsedData = parseMIMEEntity(_content);
-    std::string from = parsedData.header().from().str();
-    std::string subject = parsedData.header().subject();
-    mimetic::MimeEntity textEntity;
+    MIMESegment parsedData = parseMIMEEntity(_content);
+
+    std::string from = parsedData.header().get("From").full();
+    std::string subject = parsedData.header().get("Subject").full();
+    MIMESegment textEntity;
     getMIMETextEntity(&parsedData, textEntity);
-    std::string bodyText = textEntity.body();
+    std::string bodyText = textEntity.body().rawContent();
 
     if (_filterEval.length() > 0) {
         QJSEngine engine;
@@ -288,7 +294,6 @@ std::string ClientMailbox::filter(const std::string& _content, const std::string
         std::string res = filterRes.toString().toStdString();
         if (folderExists(res) && getFolders()[res] == true) return res;
     }
-#endif
     return defaultFilter(from, subject, bodyText);
 }
 

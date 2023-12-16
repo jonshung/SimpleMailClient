@@ -1,84 +1,84 @@
 #pragma once
 
-/*
-
 #include <iostream>
 #include <vector>
 #include <string>
 #include <sstream>
 #include <utility>
 #include <map>
+#include <memory>
+
+class MIMESegment;
+class MIMEHeader;
+class MIMEHeaderField;
+class MIMEBody;
 
 
-class ContentType {
+class MIMEHeaderField {
 private:
-    std::string _type;
-    std::string _subtype;
+    std::string _key;
+    std::string _vl;
+    std::string _full;
     std::map<std::string, std::string> _params;
 public:
-    ContentType();
-    ContentType(std::string, std::string = "", std::map<std::string, std::string> = std::map<std::string, std::string>());
-
-    std::string type();
-    std::string subtype();
+    MIMEHeaderField();
+    MIMEHeaderField(std::string, std::string);
+    std::string key();
+    std::string full();
+    std::string value();
     std::string param(std::string);
-    void type(std::string);
-    void subtype(std::string);
+    void key(std::string);
+    void full(std::string);
+    void value(std::string);
     void param(std::string, std::string);
-};
 
-class ContentDispotition {
-private:
-    std::string _type;
-    std::map<std::string, std::string> _params;
-public:
-    ContentDispotition(std::string, std::map<std::string, std::string> = std::map<std::string, std::string>());
-
-    std::string type();
-    std::string param(std::string);
-    void type(std::string);
-    void param(std::string, std::string);
+    void parseValue(std::string);
 };
 
 class MIMEHeader {
 private:
-    std::map<std::string, std::string> _headerFields;
-    ContentType _content_type;
+    std::map<std::string, MIMEHeaderField> _headerFields{};
 public:
     MIMEHeader();
-    MIMEHeader(std::string, std::string);
-    void parse();
-    void parseContentType(const std::string& = "");
-    void parseContentDispotition(const std::string& = "");
-    void parseField(const std::string&, const std::string& = "");
-    ContentType& contentType();
-    void contentType(ContentType);
-    void contentType(std::string);
+    
+    void parseLine(std::string);
 
-    std::string get(std::string);
+    MIMEHeaderField get(std::string);
     void set(std::string, std::string);
     bool empty();
     int count();
 };
 
+class MIMEBody {
+private:
+    std::vector<MIMESegment> _parts;
+    std::string _rawContent;
+public:
+    MIMEBody();
+    std::vector<MIMESegment>& parts();
+    void part(MIMESegment);
+
+    std::string rawContent();
+    void rawContent(std::string);
+};
+
 class MIMESegment {
 private:
     MIMEHeader _header;
-    std::string _content;
-    void headers(MIMEHeader);
-public:
-    MIMESegment(std::vector<MIMEHeader> = std::vector<MIMEHeader>(), std::string = "", std::string = "");
-    
-    MIMEHeader& headers();
-    std::string content();
-    void content(std::string);
-};
+    MIMEBody _body;
+    std::string _boundary;
+    bool _isMultipart;
 
-class MIMEParser {
 public:
-    MIMEParser(const std::string&);
-    std::vector<MIMESegment> parse();
-private:
-    std::string _mime_string;
+    //MIMESegment(std::vector<MIMEHeader> = std::vector<MIMEHeader>(), std::string = "", std::string = "");
+    MIMESegment(std::string = "");
+    void parse(std::string = "");
+
+    MIMEBody& body();
+    void body(MIMESegment*);
+    
+    MIMEHeader& header();
+
+    bool isMultipart();
+    void setMultipart(bool);
 };
-*/

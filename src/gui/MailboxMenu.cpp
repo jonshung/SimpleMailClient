@@ -56,7 +56,6 @@ void MailboxMenu::fetch() {
     refetchTree();
 }
 
-#if ( defined (LINUX) || defined (__linux__) )
 void MailboxMenu::refetchTree() {
     if (_tree->model() != nullptr) {
         delete _tree->model();
@@ -86,7 +85,7 @@ void MailboxMenu::refetchTree() {
 
             QTextStream in(&fileHandler);
             std::string content = in.readAll().toStdString();
-            mimetic::MimeEntity e = parseMIMEEntity(content);
+            MIMESegment e = parseMIMEEntity(content);
             QString subj = QString::fromStdString(extractSubject(&e));
             QStandardItem* mailEntry = new QStandardItem(subj);
 
@@ -111,9 +110,6 @@ void MailboxMenu::refetchTree() {
     model->setHeaderData(0, Qt::Orientation::Horizontal, "Mails");
     _tree->setModel(model);
 }
-#else
-void MailboxMenu::refetchTree() {}
-#endif
 
 void MailboxMenu::initHeader() {
     _mailContent = new QWidget(this);
@@ -208,8 +204,6 @@ void MailboxMenu::clear() {
     _bccReadOnly->setVisible(false);
 }
 
-#if ( defined (LINUX) || defined (__linux__) )
-
 void MailboxMenu::showMail(const QModelIndex& idx) {
     QStandardItemModel* mdl = qobject_cast<QStandardItemModel*>(_tree->model());
     if (mdl == nullptr) return;
@@ -246,14 +240,31 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
         }
     }
 
-    mimetic::MimeEntity e = parseMIMEEntity(content);
+    MIMESegment e = parseMIMEEntity(content);
 
-    mimetic::MailboxList fromList = e.header().from();
-    mimetic::AddressList toList = e.header().to();
-    mimetic::AddressList ccList = e.header().cc();
-    mimetic::AddressList bccList = e.header().bcc();
+    QString fromList = QString::fromStdString(e.header().get("From").full());
+    QString toList = QString::fromStdString(e.header().get("To").full());
+    QString ccList = QString::fromStdString(e.header().get("Cc").full());
+    QString bccList = QString::fromStdString(e.header().get("Bcc").full());
 
-    if(fromList.size() > 0) {
+    if(fromList.length() > 0) {
+        _fromReadOnly->setText(fromList);
+        _fromReadOnly->setVisible(true);
+    }
+    if (toList.length() > 0) {
+        _toReadOnly->setText(toList);
+        _toReadOnly->setVisible(true);
+    }
+    if (ccList.length() > 0) {
+        _ccReadOnly->setText(ccList);
+        _ccReadOnly->setVisible(true);
+    }
+    if (bccList.length() > 0) {
+        _bccReadOnly->setText(bccList);
+        _bccReadOnly->setVisible(true);
+    }
+
+    /*if(fromList.size() > 0) {
         QString label = "From: ";
         int i = 0;
         for (const mimetic::Mailbox& mb : fromList) {
@@ -339,20 +350,18 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
         _bccReadOnly->setVisible(true);
     } else {
         _bccReadOnly->setVisible(false);
-    }
+    }*/
     
-    _subjectReadOnly->setText(QString::fromStdString(e.header().subject()));
+    _subjectReadOnly->setText(QString::fromStdString(e.header().get("Subject").full()));
     _subjectReadOnly->setVisible(true);
 
-    mimetic::MimeEntity res;
+    MIMESegment res;
     getMIMETextEntity(&e, res);
-    mimetic::QP::Decoder decoderQp = mimetic::QP::Decoder();
-    mimetic::Base64::Decoder decoder64 = mimetic::Base64::Decoder();
-    res.body().code(decoderQp);
-    QString cnt = QString::fromStdString(res.body());
+    QString cnt = QString::fromStdString(Encoder::decode_quoted_printable(res.body().rawContent()));
 
-    std::vector<mimetic::MimeEntity*> attachments;
-    getMIMEAttachments(&e, attachments);
+    std::vector<MIMESegment> attachments;
+    getMIMEAttachments(e, attachments);
+
     _currentTemp = new QTemporaryDir("./");
     QString relPath = "";
     if (_currentTemp->isValid()) {
@@ -361,31 +370,28 @@ void MailboxMenu::showMail(const QModelIndex& idx) {
     }
 
     if(_currentTemp->isValid()) {
-        for (mimetic::MimeEntity* att : attachments) {
-            att->body().code(decoder64);
-            std::string filename = att->header().contentDisposition().param("filename");
+        for (MIMESegment att : attachments) {
+            std::string filename = att.header().get("Content-Disposition").param("filename");
             QString fileNewPath = _currentTemp->path();
             fileNewPath.append("/" + filename);
 
-            if(att->header().contentType().type() == "image") {
+            if(att.header().get("Content-Type").value().find("image") != std::string::npos) {
                 QImage img;
-                img.loadFromData(att->body());
+                std::string decoded = Encoder::decode_base64(att.body().rawContent(), true);
+                img.loadFromData(decoded);
                 img.save(fileNewPath);
             } else {
-                QFile fl(fileNewPath);
-                if (fl.open(QIODevice::WriteOnly | QIODevice::Text)) {
-                    fl.write(att->body().c_str());
+                std::ofstream fl(fileNewPath.toStdString());
+                if (fl.is_open()) {
+                    std::string decoded = Encoder::decode_base64(att.body().rawContent(), true);
+                    fl << decoded;
                 }
                 fl.close();
             }
-
             _attachmentList->add(QFileInfo(fileNewPath));
         }
     }
     _display->setHtml(cnt, QUrl::fromUserInput(relPath));
 }
-#else
-void MailboxMenu::showMail(const QModelIndex&) {}
-#endif
 
 #include "moc_MailboxMenu.cpp"

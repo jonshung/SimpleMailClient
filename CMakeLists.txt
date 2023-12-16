@@ -33,8 +33,9 @@ if(UNIX)
         src/gui/MainWindow.cpp
         src/gui/SendMenu.cpp
         src/gui/MailboxMenu.cpp
+        src/mime-provider/Base64.cpp
+        src/mime-provider/QuotedPrintable.cpp
         src/mime-provider/Parser.cpp
-        src/mime-provider/Encoder.cpp
         src/mime-provider/MIMEParser.cpp
         src/mime-provider/MIMEInterface.cpp
         src/local-client/ConfigProvider.cpp
@@ -56,8 +57,9 @@ if(MSVC)
         src/gui/ContentWidget.cpp
         src/gui/MainWindow.cpp
         src/gui/SendMenu.cpp
+        src/mime-provider/Base64.cpp
+        src/mime-provider/QuotedPrintable.cpp
         src/mime-provider/Parser.cpp
-        src/mime-provider/Encoder.cpp
         src/mime-provider/MIMEParser.cpp
         src/mime-provider/MIMEInterface.cpp
         src/local-client/ConfigProvider.cpp
@@ -73,11 +75,9 @@ if (UNIX)
                                             Qt6::Gui
                                             Qt6::WebEngineWidgets
                                             Qt6::Qml nlohmann_json
-                                            /usr/local/lib/libmimetic.a
                         )
     target_include_directories(Mail-Client PUBLIC src/include 
                                                 src/lib/json/include
-                                                /usr/local/include/mimetic
                             )
 endif (UNIX)
 

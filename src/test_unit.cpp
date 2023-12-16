@@ -1,4 +1,6 @@
 #include "test_unit.h"
+#include "Parser.h"
+#include "Encoder.h"
 
 MailContent getMailContent(MailboxAddress sender) {
     MailContent _mailContent;
@@ -106,8 +108,24 @@ MailContent getMailContent(MailboxAddress sender) {
     }
 }*/
 
+void printSeg(MIMESegment e) {
+    //qDebug() << e.header().get("Content-Type").value();
+    for (MIMESegment seg : e.body().parts()) {
+        printSeg(seg);
+        if(seg.header().get("Content-Type").value() == "text/html") {
+            qDebug().noquote() << Encoder::decode_quoted_printable(seg.body().rawContent());
+        }
+        if (seg.header().get("Content-Disposition").value().find("attachment") != std::string::npos) {
+            std::ofstream fileHandler("profile_picture2.jpg");
+            if(!fileHandler.is_open()) continue;
+            fileHandler << Encoder::decode_base64(seg.body().rawContent(), true);
+            fileHandler.close();
+        }
+    }
+}
+
 void evalTest() {
-    std::string _user, _addr, _password;
+    /*std::string _user, _addr, _password;
 
     std::cout << "user: ";
     std::getline(std::cin, _user);
@@ -125,14 +143,18 @@ void evalTest() {
     std::cout << "Sent!\r\n";
     std::cout << "Fetching back\r\n";
     client.fetch("localhost", "2226");
-    std::cout << "Fetched!\r\n";
+    std::cout << "Fetched!\r\n";*/
 
-    /*std::ifstream fileHandler("mailboxes/user1@abc.com/Inbox/20231205193158285.msg");
+    std::ifstream fileHandler("mailboxes/jonsphilogy@gmail.com/Inbox/20231215025830273.msg");
     if(!fileHandler.is_open()) {
         std::cout << "Cannot open file\r\n";
         return;
     }
     std::string content((std::istreambuf_iterator<char>(fileHandler)), std::istreambuf_iterator<char>());
-    parseMIMEEntity(content);
-    fileHandler.close();*/
+    //parseMIMEEntity(content);
+    MIMESegment e(content);
+    printSeg(e);
+
+    fileHandler.close();
 }
+

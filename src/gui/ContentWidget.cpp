@@ -172,7 +172,10 @@ void ContentWidget::initFontChooser() {
     _fontChooser->setMenu(fontMenu);
 
     QStringList fontFamilies = QFontDatabase::families();
+    int count = 0;
+    int max_count = 13;
     for (const QString& fontInfo : fontFamilies) {
+        if(count > max_count) break;
         QAction* fontAction = new QAction();
         fontAction->setData(fontInfo);
         fontAction->setText(fontInfo);

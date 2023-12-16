@@ -177,7 +177,7 @@ std::vector<std::string> SocketClient::socRecv(const int& _timeout) {
     int _read = recv(_client, _buffer, _maxbuf, 0);
     if (_read == 0) {
         _error = "Connection closed unexpectedly";
-        return;
+        return _ret;
     }
     int _total = 0;
     std::stringstream ss(std::string(_buffer, _read));

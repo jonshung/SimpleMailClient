@@ -23,12 +23,11 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     QWidget* welcomeMenu = new QWidget();
     welcomeMenu->setLayout(centralLayout);
     _sendPage = new SendMenu(this);
-#if ( defined (LINUX) || defined (__linux__) )
     _mailboxPage = new MailboxMenu(this);
-#endif
 
     _pages->addWidget(welcomeMenu);
     _pages->addWidget(_sendPage);
+
     _pages->addWidget(_mailboxPage);
 
     setCentralWidget(_pages);
@@ -44,6 +43,7 @@ void MainWindow::updateConfig() {
     _mailboxInstance = std::make_unique<ClientMailbox>(Credential(MailboxAddress(configData->user(), configData->address()), configData->password()));
 
     if (_sendPage != nullptr) _sendPage->updateConfig();
+
     if (_mailboxPage != nullptr) {
         _mailboxPage->clear();
         _mailboxPage->refetchTree();
@@ -56,11 +56,9 @@ void MainWindow::createMenus() {
     _sendMenuAction->setStatusTip(tr("Go to send menu"));
     connect(_sendMenuAction, &QAction::triggered, this, &MainWindow::directToSend);
 
-#if ( defined (LINUX) || defined (__linux__) )
     _mailboxMenuAction = new QAction(tr("&Mailbox"));
     _mailboxMenuAction->setStatusTip(tr("Go to mailbox"));
     connect(_mailboxMenuAction, &QAction::triggered, this, &MainWindow::directToMailbox);
-#endif
 
     _configAction = new QAction(tr("&Configure"));
     _configAction->setStatusTip(tr("Open configuration"));
@@ -68,9 +66,7 @@ void MainWindow::createMenus() {
 
     _toolBar = new QToolBar(this);
     _toolBar->addAction(_sendMenuAction);
-#if ( defined (LINUX) || defined (__linux__) )
     _toolBar->addAction(_mailboxMenuAction);
-#endif
 
     QWidget* spacer = new QWidget();
     spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -86,11 +82,9 @@ SendMenu* MainWindow::sendPage() {
     return _sendPage;
 }
 
-#if ( defined (LINUX) || defined (__linux__) )
 MailboxMenu* MainWindow::mailboxPage() {
     return _mailboxPage;
 }
-#endif
 
 void MainWindow::directToMailbox() {
     if (_pages->currentIndex() == 2) {

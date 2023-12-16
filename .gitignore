@@ -1,8 +1,6 @@
 .vscode
 .VSCodeCounter
-bin/.qt
-bin/$<CONFIG>
-bin/Debug
+bin
 build
 
 # Prerequisites

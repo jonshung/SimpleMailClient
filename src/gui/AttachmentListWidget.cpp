@@ -133,8 +133,8 @@ QPushButton* AttachmentListWidget::getAttachmentWidget(const QString& filename) 
 
     BoxShadowEffect* centerShadowEffect = new BoxShadowEffect();
     centerShadowEffect->setBlurRadius(30.0);
-    centerShadowEffect->setDistance(6.0);
-    centerShadowEffect->setColor(QColor(0, 0, 0, 65));
+    centerShadowEffect->setDistance(3.0);
+    centerShadowEffect->setColor(QColor(0, 0, 0, 20));
 
     wid->setGraphicsEffect(centerShadowEffect);
     return wid;

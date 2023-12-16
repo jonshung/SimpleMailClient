@@ -1,74 +1,183 @@
 #include "Parser.h"
 
-/*
-MIMEParser::MIMEParser(const std::string& mime_string) : _mime_string(mime_string) {
-    parse();
+MIMESegment::MIMESegment(std::string mime_string) {
+    _boundary = "";
+    _isMultipart = false;
+    _body = MIMEBody();
+    parse(mime_string);
 }
 
-std::vector<MIMESegment> MIMEParser::parse() {
-    std::vector<MIMESegment> segments;
-    std::istringstream mimeStream(_mime_string);
-    std::string line;
-    std::string boundary;
+MIMEBody& MIMESegment::body() {
+    return _body;
+}
 
-    MIMESegment segment;
+MIMEHeader& MIMESegment::header() {
+    return _header;
+}
+
+void MIMESegment::parse(std::string in_seg) {
+    std::istringstream mimeStream(in_seg);
+    std::string line;
+
+    bool setHeader = false;
+    std::stringstream tmpRaw;
+
     while (std::getline(mimeStream, line)) {
-        if (line.empty()) {
-            if (!segment.headers().empty() && !segment.content().empty()) {
-                segment.headers().parse();
-                segments.push_back(segment);
-                segment = MIMESegment();
-            }
+        if (line.length() > 0 && line.at(line.length() - 1) == '\r') {
+            line.pop_back();
+        }
+        if (line.empty() && !setHeader) {
+            setHeader = true;
             continue;
         }
-        if (line.find("Content-Type: multipart") != std::string::npos) {
-            size_t pos = line.find("boundary=");
-            if (pos != std::string::npos) {
-                boundary = line.substr(pos + 9); // 9 is the length of "boundary="
-                if (boundary.front() == '"' && boundary.back() == '"') {
-                    boundary = boundary.substr(1, boundary.length() - 2); // Remove surrounding quotes
+
+        if (!setHeader) {
+            header().parseLine(line);
+            if (line.find("Content-Type: multipart") != std::string::npos) {
+                _isMultipart = true;
+                size_t pos = line.find("boundary=");
+                if (pos != std::string::npos) {
+                    _boundary = line.substr(pos + 9); // 9 is the length of "boundary="
+                    if (_boundary.front() == '"' && _boundary.back() == '"') {
+                        _boundary = _boundary.substr(1, _boundary.length() - 2); // Remove surrounding quotes
+                    }
                 }
             }
         }
-        else if (line.find("--" + boundary) != std::string::npos) {
-            if (!segment.headers().empty() && !segment.content().empty()) {
-                segment.headers().parseContentType();
-                segments.push_back(segment);
-                segment = MIMESegment();
-            }
-        }
-        else if (line.find("Content-Type:") != std::string::npos) {
-            size_t pos = line.find(":");
-            std::string key = line.substr(0, pos);
-            std::string value = line.substr(pos + 1);
-            segment.headers().set(key, value);
-        }
         else {
-            segment.content(segment.content() + line + "\n");
-        }
-    }
-    return segments;
-}
-
-void MIMEHeader::parse() {
-    parseContentType();
-    parseContentDispotition();
-}
-
-void MIMEHeader::parseField(const std::string& k, const std::string& vl) {
-    ContentType content_type;
-    std::string contentTypeValue = vl;
-    if (vl.length() < 0) {
-        for (const auto& header : _headerFields) {
-            if (std::get<0>(header) == "Content-Type") {
-                contentTypeValue = std::get<1>(header);
+            tmpRaw << line << "\n";
+            if(_isMultipart) {
+                size_t pos = line.find("--" + _boundary + "--");
+                if(pos != std::string::npos) break;
             }
         }
     }
+    std::string rawFin = tmpRaw.str();
+    if(rawFin.length() > 0 && rawFin.at(rawFin.length() - 1) == '\n') {
+        rawFin.pop_back();
+    }
+    body().rawContent(rawFin);
+    tmpRaw.str("");
+    tmpRaw.clear();
 
-    std::stringstream iss(contentTypeValue);
-    std::string tContentType;
-    iss >> tContentType;
+    if(_isMultipart) {
+        std::stringstream rawstream(body().rawContent());
+
+        bool isSetBoundary = false;
+        while (std::getline(rawstream, line)) {
+            if(!isSetBoundary) {
+                if(line.find("--" + _boundary) == std::string::npos) continue;
+                else {
+                    isSetBoundary = true;
+                }
+            } else {
+                if(line.find("--" + _boundary) == std::string::npos) {
+                    tmpRaw << line << "\n";
+                }
+                else {
+                    rawFin = tmpRaw.str();
+                    if (rawFin.length() > 0 && rawFin.at(rawFin.length() - 1) == '\n') {
+                        rawFin.pop_back();
+                    }
+                    MIMESegment childSeg(rawFin);
+                    _body.part(childSeg);
+                    tmpRaw.str("");
+                    tmpRaw.clear();
+                }
+            }
+        }
+    }
+}
+
+bool MIMESegment::isMultipart() {
+    return _isMultipart;
+}
+
+void MIMESegment::setMultipart(bool vl) {
+    _isMultipart = vl;
+}
+
+
+MIMEBody::MIMEBody() {
+    _rawContent = "";
+    _parts = std::vector<MIMESegment>();
+}
+
+std::vector<MIMESegment>& MIMEBody::parts() {
+    return _parts;
+}
+
+void MIMEBody::part(MIMESegment part) {
+    _parts.push_back(part);
+}
+
+std::string MIMEBody::rawContent() {
+    return _rawContent;
+}
+
+void MIMEBody::rawContent(std::string vl) {
+    _rawContent = vl;
+}
+
+
+
+MIMEHeaderField::MIMEHeaderField() {
+    _key = "";
+    _vl = "";
+    _params = std::map<std::string, std::string>();
+}
+
+MIMEHeaderField::MIMEHeaderField(std::string k, std::string vl) {
+    _key = k;
+    parseValue(vl);
+}
+
+std::string MIMEHeaderField::key() {
+    return _key;
+}
+
+std::string MIMEHeaderField::value() {
+    return _vl;
+}
+
+std::string MIMEHeaderField::full() {
+    return _full;
+}
+
+std::string MIMEHeaderField::param(std::string k) {
+    auto pos = _params.find(k);
+    if(pos == _params.end()) return "";
+    return pos->second;
+}
+
+void MIMEHeaderField::key(std::string vl) {
+    _key = vl;
+}
+
+void MIMEHeaderField::value(std::string vl) {
+    parseValue(vl);
+}
+
+void MIMEHeaderField::full(std::string vl) {
+    _full = vl;
+}
+
+void MIMEHeaderField::param(std::string k, std::string vl) {
+    _params[k] = vl;
+}
+
+#include <QDebug>
+void MIMEHeaderField::parseValue(std::string vl) {
+    std::stringstream iss(vl);
+    _full = vl;
+    iss >> _vl;
+    if(_vl.length() > 0 && _vl.at(_vl.length() - 1) == ';') {
+        _vl.pop_back();
+    }
+
+    /*
+    std::string tValue;
+    iss >> tValue;
     int idx = -1;
     if ((idx = tContentType.find_first_of("/")) != std::string::npos) {
         content_type.type(tContentType.substr(0, idx));
@@ -78,94 +187,52 @@ void MIMEHeader::parseField(const std::string& k, const std::string& vl) {
         content_type.type(tContentType);
         content_type.subtype("");
     }
-    std::string param;
-    while (iss >> param) {
-        if (param != ";") {
-            size_t eqPos = param.find('=');
+    */
+
+    std::string param_dat;
+    while (iss >> param_dat) {
+        if (param_dat.length() > 0 && param_dat.at(param_dat.length() - 1) == ';') {
+            param_dat.pop_back();
+        }
+        if (param_dat != ";") {
+            size_t eqPos = param_dat.find('=');
             if (eqPos != std::string::npos) {
-                content_type.param(param.substr(0, eqPos), param.substr(eqPos + 1));
+                std::string vl_t = param_dat.substr(eqPos + 1);
+                if(vl_t.length() >= 2 && vl_t[0] == '\"' && vl_t[vl_t.length() - 1] == '\"') {
+                    vl_t = vl_t.substr(1, vl_t.length() - 2);
+                }
+                param(param_dat.substr(0, eqPos), vl_t);
             }
         }
     }
 }
 
-void MIMEHeader::parseContentType(const std::string& vl) {
-    
-    contentType(content_type);
+void MIMEHeader::parseLine(std::string in_head) {
+    size_t pos = in_head.find(":");
+    if(pos == std::string::npos) return;
+    std::string k = in_head.substr(0, pos);
+    std::string vl = in_head.substr(pos + 1);
+    set(k, vl);
 }
 
-ContentType::ContentType() {
-    _type = "";
-    _subtype = "";
-    _params = std::map<std::string, std::string>();
+MIMEHeader::MIMEHeader() {
+    _headerFields = std::map<std::string, MIMEHeaderField>();
 }
 
-ContentType::ContentType(std::string type, std::string subtype, std::map<std::string, std::string> params) : _type(type), _subtype(subtype), _params(params) {}
-
-std::string ContentType::type() {
-    return _type;
+void MIMEHeader::set(std::string k, std::string vl) {
+    MIMEHeaderField field(k, vl);
+    _headerFields[k] = field;
 }
 
-std::string ContentType::subtype() {
-    return _subtype;
+MIMEHeaderField MIMEHeader::get(std::string k) {
+    auto pos = _headerFields.find(k);
+    if(pos == _headerFields.end()) return MIMEHeaderField();
+    return pos->second;
 }
-
-std::string ContentType::param(std::string key) {
-    try {
-        return _params.at(key);
-    }
-    catch (const std::exception& e) {
-        return "";
-    }
-}
-
-void ContentType::type(std::string vl) {
-    _type = vl;
-}
-
-void ContentType::subtype(std::string vl) {
-    _subtype = vl;
-}
-
-void ContentType::param(std::string k, std::string vl) {
-    _params[k] = vl;
-}
-
-
 bool MIMEHeader::empty() {
     return count() == 0;
 }
 
 int MIMEHeader::count() {
-    _headerFields.size();
+    return _headerFields.size();
 }
-
-
-void MIMEHeader::contentType(ContentType vl) {
-    _content_type = vl;
-}
-
-void MIMEHeader::contentType(std::string vl) {
-    parseContentType(vl);
-}
-
-
-std::string ContentDispotition::type() {
-    return _type;
-}
-
-std::string ContentDispotition::param(std::string k) {
-    try {
-        return _params.at(k);
-    } catch(const std::exception& e) {
-        return "";
-    }
-}
-
-void ContentDispotition::type(std::string vl) {
-    _type = vl;
-}
-
-void ContentDispotition::param(std::string k, std::string vl) {
-    _params[k] = vl;
-}*/

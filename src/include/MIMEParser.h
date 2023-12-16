@@ -7,19 +7,15 @@
 
 #include "MIMEInterface.h"
 #include "Encoder.h"
-
+#include "Parser.h"
 
 std::string fileToBase64(const std::string&, const int&);
 MIMEAttachment mimeFromFile(const std::string&, const std::string & = "", const int& = 0);
 
-#if ( defined (LINUX) || defined (__linux__) )
+MIMESegment parseMIMEEntity(std::string);
+std::string extractSubject(MIMESegment*);
+bool getMIMETextEntity(MIMESegment*, MIMESegment&);
+void getMIMEAttachments(MIMESegment, std::vector<MIMESegment>&);
 
-#include "mimetic/mimetic.h"
-mimetic::MimeEntity parseMIMEEntity(std::string);
-std::string extractSubject(mimetic::MimeEntity*);
-bool getMIMETextEntity(mimetic::MimeEntity*, mimetic::MimeEntity&);
-void getMIMEAttachments(mimetic::MimeEntity*, std::vector<mimetic::MimeEntity*>&);
-
-#endif
 
 #endif

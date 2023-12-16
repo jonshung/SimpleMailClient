@@ -22,7 +22,9 @@ ConfigWidget::ConfigWidget(QWidget* parent) : QWidget(parent) {
     _pop3PortEdit = new QLineEdit(QString::fromStdString(configData->POP3Port()));
     connect(_pop3PortEdit, &QLineEdit::textChanged, this, &ConfigWidget::onTextChange);
     _customFilterEdit = new QTextEdit(QString::fromStdString(configData->customFilter()));
-    _customFilterEdit->setPlaceholderText("Available variable:\n+subject: string // the subject of the mail\n"
+    _customFilterEdit->setPlaceholderText("A custom filter parse in Javascript syntax, this section should contain a\n"
+                                          "function body, and return the string containing the filter folder."
+                                          "Available variable:\n+subject: string // the subject of the mail\n"
                                           "+from: string // the names (if available) and addresses of the sender(s)\n"
                                           "+bodyText: string // the text content of the mail");
     connect(_customFilterEdit, &QTextEdit::textChanged, this, &ConfigWidget::onTextChange);

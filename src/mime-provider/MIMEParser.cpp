@@ -45,27 +45,37 @@ MIMEAttachment mimeFromFile(const std::string& _filePath, const std::string& _de
     return _mime;
 }
 
-#if ( defined (LINUX) || defined (__linux__) )
-
-mimetic::MimeEntity parseMIMEEntity(std::string _buffer) {
-    std::stringstream bufferStream(_buffer);
-    mimetic::MimeEntity e(bufferStream);
+MIMESegment parseMIMEEntity(std::string _buffer) {
+    MIMESegment e(_buffer);
     return e;
 }
 
-bool getMIMETextEntity(mimetic::MimeEntity* e, mimetic::MimeEntity& res) {
+bool getMIMETextEntity(MIMESegment* e, MIMESegment& res) {
     bool found = false;
-    if (e->header().contentType().isMultipart()) {
-        mimetic::MimeEntityList& bodyParts = e->body().parts();
-        mimetic::MimeEntityList::iterator mbeg = bodyParts.begin(), mend = bodyParts.end();
+    if (e->isMultipart()) {
+        std::vector<MIMESegment> bodyParts = e->body().parts();
+        std::vector<MIMESegment>::iterator mbeg = bodyParts.begin(), mend = bodyParts.end();
         for (; mbeg != mend; ++mbeg) {
-            bool foundTemp = getMIMETextEntity(*mbeg, res);
+            bool foundTemp = getMIMETextEntity(&(*mbeg), res);
             if(!found) found = foundTemp;
         }
     } else {
-        if(e->header().contentType().type() == "text") {
-            std::string prevType = res.header().contentType().subtype();
-            std::string currType = e->header().contentType().subtype();
+        if (e->header().get("Content-Type").value().find("text") != std::string::npos) {
+            std::string prevType;
+            std::string currType;
+
+            std::string currCtType = e->header().get("Content-Type").value();
+            size_t s1Pos = currCtType.find("/");
+            currType = "";
+            if(s1Pos != std::string::npos) {
+                currType = currCtType.substr(s1Pos + 1);
+            }
+            std::string prevCtType = res.header().get("Content-Type").value();
+            size_t s2Pos = prevCtType.find("/");
+            prevType = "";
+            if (s2Pos != std::string::npos) {
+                prevType = prevCtType.substr(s2Pos + 1);
+            }
             if(prevType.length() == 0 ||  currType == "html") res = *e;     // prioritize newest content and html
             return true;
         }
@@ -73,23 +83,22 @@ bool getMIMETextEntity(mimetic::MimeEntity* e, mimetic::MimeEntity& res) {
     return found;
 }
 
-std::string extractSubject(mimetic::MimeEntity* e) {
-    return e->header().subject();
+std::string extractSubject(MIMESegment* e) {
+    return e->header().get("Subject").full();
 }
 
-void getMIMEAttachments(mimetic::MimeEntity* e, std::vector<mimetic::MimeEntity*>& res) {
-    if (e->header().contentType().isMultipart()) {
-        mimetic::MimeEntityList& bodyParts = e->body().parts();
-        mimetic::MimeEntityList::iterator mbeg = bodyParts.begin(), mend = bodyParts.end();
-        for (; mbeg != mend; ++mbeg) {
-            getMIMEAttachments(*mbeg, res);
+void getMIMEAttachments(MIMESegment e, std::vector<MIMESegment>& res) {
+    if (e.isMultipart()) {
+        std::vector<MIMESegment> bodyParts = e.body().parts();
+        std::vector<MIMESegment>::iterator mbeg = bodyParts.begin(), mend = bodyParts.end();
+
+        for (MIMESegment seg : bodyParts) {
+            getMIMEAttachments(seg, res);
         }
     }
     else {
-        if (e->header().contentDisposition().type() == "attachment") {
+        if (e.header().get("Content-Disposition").value() == "attachment") {
             res.push_back(e);
         }
     }
 }
-
-#endif
