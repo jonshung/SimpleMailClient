@@ -35,7 +35,7 @@ ClientMailbox::ClientMailbox(Credential _info) {
     if (!std::filesystem::is_directory(localDataPath)) {
         std::filesystem::create_directories(localDataPath);
     }
-    init(_info);
+    if (_info.getAddress().getReceiptAddress().length() > 0) init(_info);
 }
 
 void ClientMailbox::init(Credential _credInfo) {
@@ -88,6 +88,7 @@ void ClientMailbox::init(Credential _credInfo) {
         }
     }
     else {
+        qDebug() << "Loading profile...";
         std::ifstream configFile(localDataPath / ".mailboxCfg.json");
         if (!configFile.is_open()) {
             _error = "Cannot open config file";
@@ -353,6 +354,7 @@ void ClientMailbox::sendContent(std::string _host, std::string _port, MailConten
 }
 
 void ClientMailbox::save() {
+    if (_cred.getAddress().getReceiptAddress().length() <= 0) return;
     std::filesystem::path localDataPath = std::string("mailboxes/" + _cred.getAddress().getReceiptAddress());
     std::ofstream configFile(localDataPath.append(".mailboxCfg.json"));
     configFile << std::setw(4) << _data << std::endl;

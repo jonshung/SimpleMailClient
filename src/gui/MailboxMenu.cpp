@@ -52,7 +52,9 @@ void MailboxMenu::fetch() {
     if (MainWindow::_mailboxInstance == nullptr) return;
     qDebug() << "fetching new data...";
     const std::unique_ptr<ConfigProvider>& configData = ConfigProvider::_configProvider;
-    MainWindow::_mailboxInstance->fetch(configData->POP3Server(), configData->POP3Port(), configData->customFilter());
+    if(MainWindow::_mailboxInstance->getCredential().getAddress().getReceiptAddress().length() > 0) {
+        MainWindow::_mailboxInstance->fetch(configData->POP3Server(), configData->POP3Port(), configData->customFilter());
+    }
     refetchTree();
 }
 
